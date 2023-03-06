@@ -52,7 +52,7 @@ end
 local function enterInstance(instanceName)
     if not instanceName then return false, "instance_not_valid" end
 
-    if not instances[instanceName] then return false, "instance_exists" end
+    if not instances[instanceName] then return false, "instance_not_exist" end
 
     LocalPlayer.state:set(Shared.State.playerInstance, instanceName, true)
 

@@ -24,9 +24,24 @@ local function addInstanceType(instanceName)
 
     instances[instanceName] = {}
 
+    syncInstances()
+
     return true, "successful"
 end
 exports("addInstanceType", addInstanceType)
+
+local function removeInstanceType(instanceName)
+    if not instanceName then return false, "instance_not_valid" end
+
+    if not doesInstanceExist(instanceName) then return false, "instance_not_exist" end
+
+    instances[instanceName] = nil
+
+    syncInstances()
+
+    return true, "successful"
+end
+exports("removeInstanceType", removeInstanceType)
 
 local function addToInstance(source, instanceName)
     if not doesInstanceExist(instanceName) then return false, Player(source).state:set(Shared.State.playerInstance, nil, true) end
