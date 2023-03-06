@@ -6,7 +6,7 @@ local isThreadRunning = false
 
 local function runInstanceThread()
     if isThreadRunning or not currentInstance then return end
-    
+
     isThreadRunning = true
 
     CreateThread(function()
@@ -25,7 +25,7 @@ local function runInstanceThread()
 
                         if player and NetworkIsPlayerActive(player) then
                             local playerPed = GetPlayerPed(player)
-                            SetEntityNoCollisionEntity(playerPed, localPlayerPed, true)
+                            SetEntityNoCollisionEntity(playerPed, localPlayerPed, true) -- disable collision with other hidden peds who are NOT in a same instance as you
                         end
                     end
                 else
@@ -34,8 +34,8 @@ local function runInstanceThread()
 
                         if player and NetworkIsPlayerActive(player) then
                             local playerPed = GetPlayerPed(player)
-                            SetEntityLocallyVisible(playerPed)
-                            -- SetPlayerVisibleLocally(playerPed, true)
+                            SetEntityLocallyVisible(playerPed) -- show hidden peds to you if you are in a same instance
+                            -- SetPlayerVisibleLocally(playerPed, true) -- show hidden peds to you if you are in a same instance
                         end
                     end
                 end

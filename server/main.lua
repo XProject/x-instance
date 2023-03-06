@@ -37,11 +37,22 @@ end
 exports("addInstanceType", addInstanceType)
 
 ---@param instanceName string
+---@param forceRemovePlayers boolean?
 ---@return boolean, string
-local function removeInstanceType(instanceName)
+local function removeInstanceType(instanceName, forceRemovePlayers)
     if not instanceName then return false, "instance_not_valid" end
 
     if not doesInstanceExist(instanceName) then return false, "instance_not_exist" end
+
+    local instancePlayersCount = #instances[instanceName]
+
+    if not forceRemovePlayers then
+        if instancePlayersCount > 0 then return false, "instance_is_occupied" end
+    end
+
+    for index = 1, instancePlayersCount do
+        Player(instances[instanceName][index]).state:set(Shared.State.playerInstance, nil, true)
+    end
 
     instances[instanceName] = nil
 
@@ -69,8 +80,7 @@ exports("addToInstance", addToInstance)
 ---@param instanceName string?
 ---@return boolean, string
 local function removeFromInstance(source, instanceName)
-    ---@type string
-    instanceName = instanceName or Player(source).state[Shared.State.playerInstance]
+    instanceName = instanceName or Player(source).state[Shared.State.playerInstance] --[[@as string]]
     if not doesInstanceExist(instanceName) then return false, "instance_not_exist" end
 
     local isSourceInInstance = false
@@ -84,6 +94,8 @@ local function removeFromInstance(source, instanceName)
     end
 
     if not isSourceInInstance then return false, "source_not_in_instance" end
+
+    Player(source).state:set(Shared.State.playerInstance, nil, true)
 
     syncInstances()
 
