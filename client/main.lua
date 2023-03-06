@@ -6,6 +6,8 @@ local isThreadRunning = false
 
 local function runInstanceThread()
     if isThreadRunning or not currentInstance then return end
+    
+    isThreadRunning = true
 
     CreateThread(function()
         local localPlayerPed = PlayerPedId()
