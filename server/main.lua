@@ -3,8 +3,8 @@
 local instances = {}
 
 do
-    for _, instance in pairs(Config.Instances) do
-        instances[instance] = {}
+    for index = 1, #Config.Instances do
+        instances[Config.Instances[index]] = {}
     end
 end
 
