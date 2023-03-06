@@ -49,6 +49,8 @@ local function runInstanceThread()
     end)
 end
 
+---@param instanceName string
+---@return boolean, string
 local function enterInstance(instanceName)
     if not instanceName then return false, "instance_not_valid" end
 
@@ -60,6 +62,7 @@ local function enterInstance(instanceName)
 end
 exports("enterInstance", enterInstance)
 
+---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.globalInstances, nil, function(_, _, value)
     instances = value
 

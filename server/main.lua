@@ -1,8 +1,10 @@
+---@alias playerSource number
+---@type { [string]: table<number, playerSource> }
 local instances = {}
 
 do
-    for key in pairs(Config.Instances) do
-        instances[key] = {}
+    for _, instance in pairs(Config.Instances) do
+        instances[instance] = {}
     end
 end
 
@@ -12,11 +14,15 @@ end
 
 CreateThread(syncInstances)
 
+---@param instanceName string
+---@return boolean
 local function doesInstanceExist(instanceName)
     return instances[instanceName] and true or false
 end
 exports("doesInstanceExist", doesInstanceExist)
 
+---@param instanceName string
+---@return boolean, string
 local function addInstanceType(instanceName)
     if not instanceName then return false, "instance_not_valid" end
 
@@ -30,6 +36,8 @@ local function addInstanceType(instanceName)
 end
 exports("addInstanceType", addInstanceType)
 
+---@param instanceName string
+---@return boolean, string
 local function removeInstanceType(instanceName)
     if not instanceName then return false, "instance_not_valid" end
 
@@ -43,15 +51,47 @@ local function removeInstanceType(instanceName)
 end
 exports("removeInstanceType", removeInstanceType)
 
+---@param source number
+---@param instanceName string
+---@return boolean, string
 local function addToInstance(source, instanceName)
-    if not doesInstanceExist(instanceName) then return false, Player(source).state:set(Shared.State.playerInstance, nil, true) end
+    if not doesInstanceExist(instanceName) then Player(source).state:set(Shared.State.playerInstance, nil, true) return false, "instance_not_exist" end
 
     table.insert(instances[instanceName], source)
 
     syncInstances()
+
+    return true, "successful"
 end
 exports("addToInstance", addToInstance)
 
+---@param source number
+---@param instanceName string?
+---@return boolean, string
+local function removeFromInstance(source, instanceName)
+    ---@type string
+    instanceName = instanceName or Player(source).state[Shared.State.playerInstance]
+    if not doesInstanceExist(instanceName) then return false, "instance_not_exist" end
+
+    local isSourceInInstance = false
+
+    for index = 1, #instances[instanceName] do
+        if instances[instanceName][index] == source then
+            isSourceInInstance = true
+            table.remove(instances[instanceName], index)
+            break
+        end
+    end
+
+    if not isSourceInInstance then return false, "source_not_in_instance" end
+
+    syncInstances()
+
+    return true, "successful"
+end
+exports("removeFromInstance", removeFromInstance)
+
+---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, value)
     local source = GetPlayerFromStateBagName(bagName)
 
@@ -60,6 +100,8 @@ AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, 
     addToInstance(source, value)
 end)
 
-RegisterCommand("addInstanceType", function(source, args)
-    addInstanceType(args[1])
-end, false)
+if Config.Debug then
+    RegisterCommand("addInstanceType", function(source, args)
+        addInstanceType(args[1])
+    end, false)
+end
