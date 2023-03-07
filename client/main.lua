@@ -65,14 +65,14 @@ exports("enterInstance", enterInstance)
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.globalInstances, nil, function(_, _, value)
     instances = value
-
+    
     runInstanceThread()
 end)
 
 AddStateBagChangeHandler(Shared.State.playerInstance, ("player:%s"):format(playerServerId), function(bagName, _, value)
-    local source = GetPlayerFromStateBagName(bagName)
-
-    if not source or source == 0 or source ~= playerServerId then return end
+    local playerHandler = GetPlayerFromStateBagName(bagName)
+    local source = tonumber(bagName:gsub("player:", ""), 10)
+    if not playerHandler or playerHandler == 0 or source ~= playerServerId then return end
 
     currentInstance = value
 end)

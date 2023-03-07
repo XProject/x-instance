@@ -11,8 +11,15 @@ end
 local function syncInstances()
     GlobalState:set(Shared.State.globalInstances, instances, true)
 end
-
 CreateThread(syncInstances)
+
+local function resetPlayersStateBags()
+    local allPlayers = GetPlayers()
+    for index = 1, #allPlayers do
+        Player(allPlayers[index]).state:set(Shared.State.playerInstance, nil, true)
+    end
+end
+CreateThread(resetPlayersStateBags)
 
 ---@param instanceName string
 ---@return boolean
@@ -68,6 +75,14 @@ exports("removeInstanceType", removeInstanceType)
 local function addToInstance(source, instanceName)
     if not doesInstanceExist(instanceName) then Player(source).state:set(Shared.State.playerInstance, nil, true) return false, "instance_not_exist" end
 
+    if GetInvokingResource() then Player(source).state:set(Shared.State.playerInstance, instanceName, true) end -- got call through exports on server
+
+    for index = 1, #instances[instanceName] do
+        if instances[instanceName][index] == source then
+            return false, "player_already_instance"
+        end
+    end
+
     table.insert(instances[instanceName], source)
 
     syncInstances()
@@ -108,12 +123,37 @@ AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, 
     local source = GetPlayerFromStateBagName(bagName)
 
     if not source or source == 0 or not value then return end
+    if GetInvokingResource() then return end -- got call through exports on server
 
     addToInstance(source, value)
 end)
 
+local function onResourceStop(resource)
+    if resource ~= Shared.currentResourceName then return end
+    GlobalState:set(Shared.State.globalInstances, {}, true)
+    resetPlayersStateBags()
+end
+
+AddEventHandler("onResourceStop", onResourceStop)
+AddEventHandler("onServerResourceStop", onResourceStop)
+
+AddEventHandler("playerJoining", function()
+    Player(source).state:set(Shared.State.playerInstance, nil, true)
+end)
+
 if Config.Debug then
     RegisterCommand("addInstanceType", function(source, args)
-        addInstanceType(args[1])
+        local success, message = exports[Shared.currentResourceName]:addInstanceType(args[1])
+        print(success, message)
+    end, false)
+
+    RegisterCommand("addToInstance", function(source, args)
+        local success, message = exports[Shared.currentResourceName]:addToInstance(source, args[1])
+        print(success, message)
+    end, false)
+
+    RegisterCommand("removeFromInstance", function(source, args)
+        local success, message = exports[Shared.currentResourceName]:removeFromInstance(source)
+        print(success, message)
     end, false)
 end
