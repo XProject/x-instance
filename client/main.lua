@@ -5,6 +5,7 @@ local PLAYER_SERVER_ID = GetPlayerServerId(PLAYER_ID)
 local isThreadRunning = false
 local playerPedId = PlayerPedId()
 local playerPedCoords = GetEntityCoords(playerPedId)
+local allPlayers = GetActivePlayers()
 
 local function overrideVoiceProximityCheck(reset)
     pcall(function()
@@ -29,6 +30,7 @@ local function runInstanceThread()
         while currentInstance do
             playerPedId = PlayerPedId()
             playerPedCoords = GetEntityCoords(playerPedId)
+            allPlayers = GetActivePlayers()
             Wait(1000)
         end
     end)
@@ -39,13 +41,13 @@ local function runInstanceThread()
         overrideVoiceProximityCheck()
 
         while isThreadRunning and currentInstance do
-            local allPlayers = GetActivePlayers()
 
             for i = 1, #allPlayers do
                 local targetPlayer = allPlayers[i]
                 local targetPlayerServerId = GetPlayerServerId(targetPlayer)
                 local targetPlayerInstance = Player(targetPlayerServerId).state[Shared.State.playerInstance]
 
+                -- Method #1
                 if not targetPlayerInstance then goto skipIndex end
 
                 local targetPlayerPed = GetPlayerPed(targetPlayer)
@@ -57,6 +59,17 @@ local function runInstanceThread()
                 end
 
                 ::skipIndex::
+
+                -- Method #2
+                --[[if targetPlayerInstance then
+                    local targetPlayerPed = GetPlayerPed(targetPlayer)
+
+                    if targetPlayerInstance == currentInstance then
+                        SetEntityLocallyVisible(targetPlayerPed) -- show hidden peds that are in same instance as you
+                    else
+                        SetEntityNoCollisionEntity(targetPlayerPed, playerPedId, true) -- disable collision with other hidden peds who are in an instance but NOT in a same one as you
+                    end
+                end]]
             end
 
             Wait(0)
