@@ -13,13 +13,13 @@ local function syncInstances()
 end
 CreateThread(syncInstances)
 
-local function resetPlayersStateBags()
-    local allPlayers = GetPlayers()
+local function resetStateBag(source)
+    local allPlayers = source and {source} or GetPlayers()
     for index = 1, #allPlayers do
         Player(allPlayers[index]).state:set(Shared.State.playerInstance, nil, true)
     end
 end
-CreateThread(resetPlayersStateBags)
+CreateThread(resetStateBag)
 
 ---@param instanceName string
 ---@return boolean
@@ -131,14 +131,14 @@ end)
 local function onResourceStop(resource)
     if resource ~= Shared.currentResourceName then return end
     GlobalState:set(Shared.State.globalInstances, {}, true)
-    resetPlayersStateBags()
+    resetStateBag()
 end
 
 AddEventHandler("onResourceStop", onResourceStop)
 AddEventHandler("onServerResourceStop", onResourceStop)
 
 AddEventHandler("playerJoining", function()
-    Player(source).state:set(Shared.State.playerInstance, nil, true)
+    resetStateBag(source)
 end)
 
 if Config.Debug then
