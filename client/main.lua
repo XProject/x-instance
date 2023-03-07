@@ -11,7 +11,7 @@ local function runInstanceThread()
 
     CreateThread(function()
         local localPlayerPed = PlayerPedId()
-        NetworkSetEntityInvisibleToNetwork(localPlayerPed, true) -- hide your ped from everyone
+        SetEntityVisible(localPlayerPed, false, false) -- hide your ped from everyone
 
         while isThreadRunning and currentInstance do
             localPlayerPed = PlayerPedId()
@@ -35,7 +35,6 @@ local function runInstanceThread()
                         if player and NetworkIsPlayerActive(player) then
                             local playerPed = GetPlayerPed(player)
                             SetEntityLocallyVisible(playerPed) -- show hidden peds to you if you are in a same instance
-                            -- SetPlayerVisibleLocally(playerPed, true) -- show hidden peds to you if you are in a same instance
                         end
                     end
                 end
@@ -44,7 +43,7 @@ local function runInstanceThread()
             Wait(0)
         end
 
-        NetworkSetEntityInvisibleToNetwork(localPlayerPed, false) -- show your ped to everyone
+        SetEntityVisible(localPlayerPed, true, false) -- show your ped to everyone
         isThreadRunning = false
     end)
 end
