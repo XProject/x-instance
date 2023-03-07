@@ -71,17 +71,33 @@ exports("removeInstanceType", removeInstanceType)
 
 ---@param source number
 ---@param instanceName string
+---@param forceAddPlayer boolean?
 ---@return boolean, string
-local function addToInstance(source, instanceName)
+local function addToInstance(source, instanceName, forceAddPlayer)
     if not doesInstanceExist(instanceName) then Player(source).state:set(Shared.State.playerInstance, nil, true) return false, "instance_not_exist" end
-
-    if GetInvokingResource() then Player(source).state:set(Shared.State.playerInstance, instanceName, true) end -- got call through exports on server
 
     for index = 1, #instances[instanceName] do
         if instances[instanceName][index] == source then
-            return false, "player_already_instance"
+            return false, "player_already_in_instance"
         end
     end
+
+    local previousInstanceName = Player(source).state[Shared.State.playerInstance] --[[@as string]]
+
+    if previousInstanceName then
+        for index = 1, #instances[previousInstanceName]  do
+            if instances[previousInstanceName][index] == source then
+                if forceAddPlayer then
+                    table.remove(instances[previousInstanceName], index)
+                    break
+                else
+                    return false, "player_in_another_instance"
+                end
+            end
+        end
+    end
+
+    if GetInvokingResource() then Player(source).state:set(Shared.State.playerInstance, instanceName, true) end -- got call through exports on server
 
     table.insert(instances[instanceName], source)
 
@@ -108,7 +124,7 @@ local function removeFromInstance(source, instanceName)
         end
     end
 
-    if not isSourceInInstance then return false, "source_not_in_instance" end
+    if not isSourceInInstance then return false, "player_not_in_instance" end
 
     Player(source).state:set(Shared.State.playerInstance, nil, true)
 
@@ -148,12 +164,12 @@ if Config.Debug then
     end, false)
 
     RegisterCommand("addToInstance", function(source, args)
-        local success, message = exports[Shared.currentResourceName]:addToInstance(source, args[1])
+        local success, message = exports[Shared.currentResourceName]:addToInstance(source, args[1], args[2] and true)
         print(success, message)
     end, false)
 
     RegisterCommand("removeFromInstance", function(source, args)
-        local success, message = exports[Shared.currentResourceName]:removeFromInstance(source)
+        local success, message = exports[Shared.currentResourceName]:removeFromInstance(source, args[1])
         print(success, message)
     end, false)
 end
