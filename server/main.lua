@@ -139,8 +139,9 @@ AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, 
     local source = GetPlayerFromStateBagName(bagName)
 
     if not source or source == 0 or not value then return end
-    if GetInvokingResource() then return end -- got call through exports on server
 
+    if GetInvokingResource() then return end -- got call through exports on server
+    
     addToInstance(source, value)
 end)
 

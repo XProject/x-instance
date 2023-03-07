@@ -49,6 +49,7 @@ local function runInstanceThread()
     end)
 end
 
+-- FOR NOW, enterInstance EXPORT MUST NOT BE USED - USE SERVER-SIDE EXPORTS INSTEAD
 ---@param instanceName string
 ---@return boolean, string
 local function enterInstance(instanceName)
@@ -64,8 +65,8 @@ exports("enterInstance", enterInstance)
 
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.globalInstances, nil, function(_, _, value)
-    instances = value
-    
+    instances = value 
+    -- print(dumpTable(instances))
     runInstanceThread()
 end)
 
@@ -76,3 +77,11 @@ AddStateBagChangeHandler(Shared.State.playerInstance, ("player:%s"):format(playe
 
     currentInstance = value
 end)
+
+if Config.Debug then
+    -- FOR NOW, enterInstance EXPORT MUST NOT BE USED - USE SERVER-SIDE EXPORTS INSTEAD
+    RegisterCommand("enterInstance", function(source, args)
+        local success, message = exports[Shared.currentResourceName]:enterInstance(args[1])
+        print(success, message)
+    end, false)
+end
