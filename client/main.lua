@@ -4,14 +4,30 @@ local playerId = PlayerId()
 local playerServerId = GetPlayerServerId(playerId)
 local isThreadRunning = false
 
+local function overrideVoiceProximityCheck(reset)
+    pcall(function()
+        if reset then return exports["pma-voice"]:resetProximityCheck() end
+
+        exports["pma-voice"]:overrideProximityCheck(function(player)
+            local targetPedInstance = Player(GetPlayerServerId(player)).state[Shared.State.playerInstance]
+            print(targetPedInstance)
+            if not targetPedInstance or targetPedInstance ~= currentInstance then return false end
+            local targetPed = GetPlayerPed(player)
+            local voiceRange = GetConvar("voice_useNativeAudio", "false") == "true" and MumbleGetTalkerProximity() * 3 or MumbleGetTalkerProximity()
+            local distance = #(GetEntityCoords(PlayerPedId()) - GetEntityCoords(targetPed))
+            return distance < voiceRange, distance
+        end)
+    end)
+end
+
 local function runInstanceThread()
     if isThreadRunning or not currentInstance then return end
-
     isThreadRunning = true
 
     CreateThread(function()
         local localPlayerPed = PlayerPedId()
         SetEntityVisible(localPlayerPed, false, false) -- hide your ped from everyone
+        overrideVoiceProximityCheck()
 
         while isThreadRunning and currentInstance do
             localPlayerPed = PlayerPedId()
@@ -43,8 +59,9 @@ local function runInstanceThread()
             Wait(0)
         end
 
-        SetEntityVisible(localPlayerPed, true, false) -- show your ped to everyone
         isThreadRunning = false
+        SetEntityVisible(localPlayerPed, true, false) -- show your ped to everyone
+        overrideVoiceProximityCheck(true)
     end)
 end
 
@@ -64,7 +81,7 @@ exports("enterInstance", enterInstance)
 
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.globalInstances, nil, function(_, _, value)
-    instances = value 
+    instances = value
     -- print(dumpTable(instances))
     runInstanceThread()
 end)
@@ -76,6 +93,14 @@ AddStateBagChangeHandler(Shared.State.playerInstance, ("player:%s"):format(playe
 
     currentInstance = value
 end)
+
+local function onResourceStop(resource)
+    if resource ~= Shared.currentResourceName or not currentInstance then return end
+    SetEntityVisible(PlayerPedId(), true, false)
+end
+
+AddEventHandler("onResourceStop", onResourceStop)
+AddEventHandler("onClientResourceStop", onResourceStop)
 
 if Config.Debug then
     -- FOR NOW, enterInstance EXPORT MUST NOT BE USED - USE SERVER-SIDE EXPORTS INSTEAD
