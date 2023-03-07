@@ -39,27 +39,24 @@ local function runInstanceThread()
         overrideVoiceProximityCheck()
 
         while isThreadRunning and currentInstance do
+            local allPlayers = GetActivePlayers()
 
-            for instanceName, instancePlayers in pairs(instances) do
-                if instanceName ~= currentInstance then
-                    for i = 1, #instancePlayers do
-                        local player = GetPlayerFromServerId(instancePlayers[i])
+            for i = 1, (allPlayers) do
+                local targetPlayer = allPlayers[i]
+                local targetPlayerServerId = GetPlayerServerId(targetPlayer)
+                local targetPlayerInstance = Player(targetPlayerServerId).state[Shared.State.playerInstance]
 
-                        if player and NetworkIsPlayerActive(player) then
-                            local targetPlayerPed = GetPlayerPed(player)
-                            SetEntityNoCollisionEntity(targetPlayerPed, playerPedId, true) -- disable collision with other hidden peds who are in an instance but NOT in a same one as you
-                        end
-                    end
+                if not targetPlayerInstance then goto skipIndex end
+
+                local targetPlayerPed = GetPlayerPed(targetPlayer)
+
+                if targetPlayerInstance == currentInstance then
+                    SetEntityLocallyVisible(targetPlayerPed) -- show hidden peds that are in same instance as you
                 else
-                    for i = 1, #instancePlayers do
-                        local player = GetPlayerFromServerId(instancePlayers[i])
-
-                        if player and NetworkIsPlayerActive(player) then
-                            local playerPed = GetPlayerPed(player)
-                            SetEntityLocallyVisible(playerPed) -- show hidden peds that are in same instance as you
-                        end
-                    end
+                    SetEntityNoCollisionEntity(targetPlayerPed, playerPedId, true) -- disable collision with other hidden peds who are in an instance but NOT in a same one as you
                 end
+
+                ::skipIndex::
             end
 
             Wait(0)
