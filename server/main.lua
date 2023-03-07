@@ -173,4 +173,32 @@ if Config.Debug then
         local success, message = exports[Shared.currentResourceName]:removeFromInstance(source, args[1])
         print(success, message)
     end, false)
+
+    -- populate instances table for testing the execution time of iterating over it in client
+    math.randomseed()
+    function randomString(length)
+        local res = ""
+        for i = 1, length do
+            res = res .. string.char(math.random(97, 122))
+        end
+        return res
+    end
+
+    for _ = 1, 30 do
+        instances[randomString(10)] = {}
+    end
+
+    local count = 0
+    for key in pairs(instances) do
+        local id = 10
+        for _ = 1, 10 do
+            table.insert(instances[key], id)
+            id = id + 1
+        end
+        count = count + 1
+    end
+    print(dumpTable(instances), "count:", count)
+
+    syncInstances()
 end
+
