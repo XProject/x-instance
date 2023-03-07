@@ -41,7 +41,7 @@ local function runInstanceThread()
         while isThreadRunning and currentInstance do
             local allPlayers = GetActivePlayers()
 
-            for i = 1, (allPlayers) do
+            for i = 1, #allPlayers do
                 local targetPlayer = allPlayers[i]
                 local targetPlayerServerId = GetPlayerServerId(targetPlayer)
                 local targetPlayerInstance = Player(targetPlayerServerId).state[Shared.State.playerInstance]
