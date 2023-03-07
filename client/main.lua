@@ -1,4 +1,5 @@
 local instances = GlobalState[Shared.State.globalInstances]
+local instancePlayers = GlobalState[Shared.State.globalInstancePlayers]
 local currentInstance = nil
 local PLAYER_ID = PlayerId()
 local PLAYER_SERVER_ID = GetPlayerServerId(PLAYER_ID)
@@ -45,7 +46,7 @@ local function runInstanceThread()
             for i = 1, #allPlayers do
                 local targetPlayer = allPlayers[i]
                 local targetPlayerServerId = GetPlayerServerId(targetPlayer)
-                local targetPlayerInstance = Player(targetPlayerServerId).state[Shared.State.playerInstance]
+                local targetPlayerInstance = instancePlayers[targetPlayerServerId] --[[Player(targetPlayerServerId).state[Shared.State.playerInstance]]
 
                 -- Method #1
                 if not targetPlayerInstance then goto skipIndex end
@@ -100,7 +101,12 @@ exports("enterInstance", enterInstance)
 AddStateBagChangeHandler(Shared.State.globalInstances, nil, function(_, _, value)
     instances = value
     -- print(dumpTable(instances))
-    runInstanceThread()
+end)
+
+---@diagnostic disable-next-line: param-type-mismatch
+AddStateBagChangeHandler(Shared.State.globalInstancePlayers, nil, function(_, _, value)
+    instancePlayers = value
+    print(dumpTable(instancePlayers))
 end)
 
 AddStateBagChangeHandler(Shared.State.playerInstance, ("player:%s"):format(PLAYER_SERVER_ID), function(bagName, _, value)
@@ -109,6 +115,8 @@ AddStateBagChangeHandler(Shared.State.playerInstance, ("player:%s"):format(PLAYE
     if not playerHandler or playerHandler == 0 or source ~= PLAYER_SERVER_ID then return end
 
     currentInstance = value
+
+    runInstanceThread()
 end)
 
 local function onResourceStop(resource)
