@@ -48,21 +48,7 @@ local function runInstanceThread()
                 local targetPlayerServerId = GetPlayerServerId(targetPlayer)
                 local targetPlayerInstance = instancePlayers[targetPlayerServerId] --[[Player(targetPlayerServerId).state[Shared.State.playerInstance]]
 
-                -- Method #1
-                if not targetPlayerInstance then goto skipIndex end
-
-                local targetPlayerPed = GetPlayerPed(targetPlayer)
-
-                if targetPlayerInstance == currentInstance then
-                    SetEntityLocallyVisible(targetPlayerPed) -- show hidden peds that are in same instance as you
-                else
-                    SetEntityNoCollisionEntity(targetPlayerPed, playerPedId, true) -- disable collision with other hidden peds who are in an instance but NOT in a same one as you
-                end
-
-                ::skipIndex::
-
-                -- Method #2
-                --[[if targetPlayerInstance then
+                if targetPlayerInstance then
                     local targetPlayerPed = GetPlayerPed(targetPlayer)
 
                     if targetPlayerInstance == currentInstance then
@@ -70,7 +56,7 @@ local function runInstanceThread()
                     else
                         SetEntityNoCollisionEntity(targetPlayerPed, playerPedId, true) -- disable collision with other hidden peds who are in an instance but NOT in a same one as you
                     end
-                end]]
+                end
             end
 
             Wait(0)
