@@ -152,7 +152,7 @@ local function getInstancePlayers(instanceName)
 end
 exports("getInstancePlayers", getInstancePlayers)
 
----@param source string
+---@param source number
 ---@return string | nil
 local function getPlayerInstance(source)
     return instancePlayers[source]
