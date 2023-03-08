@@ -123,7 +123,7 @@ local function addToInstance(source, instanceName, instanceHost, forceAddPlayer)
 
     local instanceToDelete = instances[currentInstanceName]?[currentInstanceHost]
     if type(instanceToDelete) == "table" and #instanceToDelete <= 0 then
-        instances[instanceName][currentInstanceHost] = nil
+        instances[currentInstanceName][currentInstanceHost] = nil
     end
 
     instancePlayers[source] = {instance = instanceName, host = instanceHost}
