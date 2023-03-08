@@ -1,6 +1,7 @@
 ---@alias playerSource number
 ---@type { [string]: table<number, playerSource> }
 local instances = {}
+local instancePlayers = {}
 
 do
     for index = 1, #Config.Instances do
@@ -9,6 +10,7 @@ do
 end
 
 local function syncInstances()
+    GlobalState:set(Shared.State.globalInstancePlayers, instancePlayers, true)
     GlobalState:set(Shared.State.globalInstances, instances, true)
 end
 CreateThread(syncInstances)
@@ -58,7 +60,9 @@ local function removeInstanceType(instanceName, forceRemovePlayers)
     end
 
     for index = 1, instancePlayersCount do
-        Player(instances[instanceName][index]).state:set(Shared.State.playerInstance, nil, true)
+        local source = instances[instanceName][index]
+        instancePlayers[source] = nil
+        Player(source).state:set(Shared.State.playerInstance, nil, true)
     end
 
     instances[instanceName] = nil
@@ -99,6 +103,7 @@ local function addToInstance(source, instanceName, forceAddPlayer)
 
     if GetInvokingResource() then Player(source).state:set(Shared.State.playerInstance, instanceName, true) end -- got call through exports on server
 
+    instancePlayers[source] = instanceName
     table.insert(instances[instanceName], source)
 
     syncInstances()
@@ -119,7 +124,6 @@ local function removeFromInstance(source, instanceName)
     for index = 1, #instances[instanceName] do
         if instances[instanceName][index] == source then
             isSourceInInstance = true
-            table.remove(instances[instanceName], index)
             break
         end
     end
@@ -127,6 +131,9 @@ local function removeFromInstance(source, instanceName)
     if not isSourceInInstance then return false, "player_not_in_instance" end
 
     Player(source).state:set(Shared.State.playerInstance, nil, true)
+
+    instancePlayers[source] = nil
+    table.remove(instances[instanceName], index)
 
     syncInstances()
 

@@ -1,10 +1,12 @@
 local instances = GlobalState[Shared.State.globalInstances]
+local instancePlayers = GlobalState[Shared.State.globalInstancePlayers]
 local currentInstance = nil
 local PLAYER_ID = PlayerId()
 local PLAYER_SERVER_ID = GetPlayerServerId(PLAYER_ID)
 local isThreadRunning = false
 local playerPedId = PlayerPedId()
 local playerPedCoords = GetEntityCoords(playerPedId)
+local allPlayers = GetActivePlayers()
 
 local function overrideVoiceProximityCheck(reset)
     pcall(function()
@@ -29,6 +31,7 @@ local function runInstanceThread()
         while currentInstance do
             playerPedId = PlayerPedId()
             playerPedCoords = GetEntityCoords(playerPedId)
+            allPlayers = GetActivePlayers()
             Wait(1000)
         end
     end)
@@ -40,26 +43,34 @@ local function runInstanceThread()
 
         while isThreadRunning and currentInstance do
 
-            for instanceName, instancePlayers in pairs(instances) do
-                if instanceName ~= currentInstance then
-                    for i = 1, #instancePlayers do
-                        local player = GetPlayerFromServerId(instancePlayers[i])
+            for i = 1, #allPlayers do
+                local targetPlayer = allPlayers[i]
+                local targetPlayerServerId = GetPlayerServerId(targetPlayer)
+                local targetPlayerInstance = instancePlayers[targetPlayerServerId] --[[Player(targetPlayerServerId).state[Shared.State.playerInstance]]
 
-                        if player and NetworkIsPlayerActive(player) then
-                            local targetPlayerPed = GetPlayerPed(player)
-                            SetEntityNoCollisionEntity(targetPlayerPed, playerPedId, true) -- disable collision with other hidden peds who are in an instance but NOT in a same one as you
-                        end
-                    end
+                -- Method #1
+                if not targetPlayerInstance then goto skipIndex end
+
+                local targetPlayerPed = GetPlayerPed(targetPlayer)
+
+                if targetPlayerInstance == currentInstance then
+                    SetEntityLocallyVisible(targetPlayerPed) -- show hidden peds that are in same instance as you
                 else
-                    for i = 1, #instancePlayers do
-                        local player = GetPlayerFromServerId(instancePlayers[i])
-
-                        if player and NetworkIsPlayerActive(player) then
-                            local playerPed = GetPlayerPed(player)
-                            SetEntityLocallyVisible(playerPed) -- show hidden peds that are in same instance as you
-                        end
-                    end
+                    SetEntityNoCollisionEntity(targetPlayerPed, playerPedId, true) -- disable collision with other hidden peds who are in an instance but NOT in a same one as you
                 end
+
+                ::skipIndex::
+
+                -- Method #2
+                --[[if targetPlayerInstance then
+                    local targetPlayerPed = GetPlayerPed(targetPlayer)
+
+                    if targetPlayerInstance == currentInstance then
+                        SetEntityLocallyVisible(targetPlayerPed) -- show hidden peds that are in same instance as you
+                    else
+                        SetEntityNoCollisionEntity(targetPlayerPed, playerPedId, true) -- disable collision with other hidden peds who are in an instance but NOT in a same one as you
+                    end
+                end]]
             end
 
             Wait(0)
@@ -90,7 +101,12 @@ exports("enterInstance", enterInstance)
 AddStateBagChangeHandler(Shared.State.globalInstances, nil, function(_, _, value)
     instances = value
     -- print(dumpTable(instances))
-    runInstanceThread()
+end)
+
+---@diagnostic disable-next-line: param-type-mismatch
+AddStateBagChangeHandler(Shared.State.globalInstancePlayers, nil, function(_, _, value)
+    instancePlayers = value
+    print(dumpTable(instancePlayers))
 end)
 
 AddStateBagChangeHandler(Shared.State.playerInstance, ("player:%s"):format(PLAYER_SERVER_ID), function(bagName, _, value)
@@ -99,6 +115,8 @@ AddStateBagChangeHandler(Shared.State.playerInstance, ("player:%s"):format(PLAYE
     if not playerHandler or playerHandler == 0 or source ~= PLAYER_SERVER_ID then return end
 
     currentInstance = value
+
+    runInstanceThread()
 end)
 
 local function onResourceStop(resource)
