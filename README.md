@@ -16,8 +16,9 @@ exports["x-instance"]:doesInstanceExist(instanceName)
 
 
 ---@param instanceName string
----@return table<number, playerSource> | nil
-exports["x-instance"]:getInstancePlayers(instanceName)
+---@param hostSource? number
+---@return table<number, playerSource> | table<hostSource, table<number, playerSource>> | nil
+exports["x-instance"]:getInstancePlayers(instanceName, hostSource)
 
 
 ---@param source? number
@@ -45,6 +46,7 @@ exports["x-instance"]:removeInstanceType(instanceName, forceRemovePlayers)
 
 ---@param source number
 ---@param instanceName string
+---@param instanceHost? number
 ---@param forceAddPlayer? boolean
 ---@return boolean, string
 exports["x-instance"]:addToInstance(source, instanceName, forceAddPlayer)
@@ -57,11 +59,12 @@ exports["x-instance"]:removeFromInstance(source, instanceName)
 
 
 ---@param instanceName string
----@return table<number, playerSource> | nil
-exports["x-instance"]:getInstancePlayers(instanceName)
+---@param hostSource? number
+---@return table<number, playerSource> | table<hostSource, table<number, playerSource>> | nil
+exports["x-instance"]:getInstancePlayers(instanceName, hostSource)
 
 
----@param source? number
+---@param source number
 ---@return string | nil
 exports["x-instance"]:getPlayerInstance(source)
 ```

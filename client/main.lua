@@ -1,18 +1,21 @@
 local instances = GlobalState[Shared.State.globalInstances]
 local instancePlayers = GlobalState[Shared.State.globalInstancePlayers]
 local currentInstance = nil
+local currentHost = nil
 local PLAYER_ID = PlayerId()
 local PLAYER_SERVER_ID = GetPlayerServerId(PLAYER_ID)
 local isThreadRunning = false
-local playerPedId, playerPedCoords, allPlayers = nil, nil, nil
+local playerPedId, playerPedCoords = nil, nil
 
 local function overrideVoiceProximityCheck(reset)
     pcall(function()
         if reset then return exports["pma-voice"]:resetProximityCheck() end
 
         exports["pma-voice"]:overrideProximityCheck(function(player)
-            local targetPedInstance = instancePlayers[GetPlayerServerId(player)] --[[Player(GetPlayerServerId(player)).state[Shared.State.playerInstance]]
-            if targetPedInstance ~= currentInstance then return false end
+            local targetPlayerServerId = GetPlayerServerId(player)
+            local targetPlayerInstance = instancePlayers[targetPlayerServerId]?.instance
+            local targetPlayerInstanceHost = instancePlayers[targetPlayerServerId]?.host
+            if targetPlayerInstance ~= currentInstance or targetPlayerInstanceHost ~= currentHost then return false end
             local targetPed = GetPlayerPed(player)
             local voiceRange = GetConvar("voice_useNativeAudio", "false") == "true" and MumbleGetTalkerProximity() * 3 or MumbleGetTalkerProximity()
             local distance = #((playerPedCoords or GetEntityCoords(PlayerPedId())) - GetEntityCoords(targetPed))
@@ -26,10 +29,10 @@ local function runInstanceThread()
     isThreadRunning = true
 
     CreateThread(function()
+        local count = 0
         while isThreadRunning do
             playerPedId = PlayerPedId()
             playerPedCoords = GetEntityCoords(playerPedId)
-            allPlayers = GetActivePlayers()
             Wait(1000)
         end
     end)
@@ -39,23 +42,19 @@ local function runInstanceThread()
         overrideVoiceProximityCheck()
 
         while isThreadRunning and currentInstance do
-
-            for i = 1, #allPlayers do
-                local targetPlayer = allPlayers[i]
-                local targetPlayerServerId = GetPlayerServerId(targetPlayer)
-                local targetPlayerInstance = instancePlayers[targetPlayerServerId] --[[Player(targetPlayerServerId).state[Shared.State.playerInstance]]
-
-                if targetPlayerInstance then
-                    local targetPlayerPed = GetPlayerPed(targetPlayer)
-
-                    if targetPlayerInstance == currentInstance then
+            for hostSource, players in pairs(instances[currentInstance]) do
+                local targetPlayer = GetPlayerFromServerId(players[i])
+                local targetPlayerPed = GetPlayerPed(targetPlayer)
+                if hostSource == currentHost then
+                    for _ = 1, #players do
                         SetEntityLocallyVisible(targetPlayerPed) -- show hidden peds that are in same instance as you
-                    else
+                    end
+                else
+                    for _ = 1, #players do
                         SetEntityNoCollisionEntity(targetPlayerPed, playerPedId, true) -- disable collision with other hidden peds who are in an instance but NOT in a same one as you
                     end
                 end
             end
-
             Wait(0)
         end
 
@@ -88,16 +87,17 @@ end
 exports("enterInstance", enterInstance)
 
 ---@param instanceName string
----@return table<number, playerSource> | nil
-local function getInstancePlayers(instanceName)
-    return instances[instanceName]
+---@param hostSource? number
+---@return table<number, playerSource> | table<hostSource, table<number, playerSource>> | nil
+local function getInstancePlayers(instanceName, hostSource)
+    return hostSource and instances[instanceName][hostSource] or instances[instanceName]
 end
 exports("getInstancePlayers", getInstancePlayers)
 
 ---@param source? number
 ---@return string | nil
 local function getPlayerInstance(source)
-    return source and instancePlayers[source] or instancePlayers[PLAYER_SERVER_ID]
+    return source and instancePlayers[source]?.instance or instancePlayers[PLAYER_SERVER_ID]?.instance
 end
 exports("getPlayerInstance", getPlayerInstance)
 
@@ -110,7 +110,6 @@ end)
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.globalInstancePlayers, nil, function(_, _, value)
     instancePlayers = value
-    -- print(dumpTable(instancePlayers))
 end)
 
 AddStateBagChangeHandler(Shared.State.playerInstance, ("player:%s"):format(PLAYER_SERVER_ID), function(bagName, _, value)
@@ -118,7 +117,8 @@ AddStateBagChangeHandler(Shared.State.playerInstance, ("player:%s"):format(PLAYE
     local source = tonumber(bagName:gsub("player:", ""), 10)
     if not playerHandler or playerHandler == 0 or source ~= PLAYER_SERVER_ID then return end
 
-    currentInstance = value
+    currentInstance = value?.instance
+    currentHost = value?.host
 
     runInstanceThread()
 end)
