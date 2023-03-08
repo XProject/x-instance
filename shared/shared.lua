@@ -12,6 +12,7 @@ Shared.State.playerInstance = ("%s_playerInstance"):format(Shared.currentResourc
 
 ---@alias playerSource number
 ---@alias instanceName string
+---@alias hostSource playerSource
 
 function dumpTable(table, nb)
     if nb == nil then
