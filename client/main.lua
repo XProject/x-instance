@@ -4,9 +4,7 @@ local currentInstance = nil
 local PLAYER_ID = PlayerId()
 local PLAYER_SERVER_ID = GetPlayerServerId(PLAYER_ID)
 local isThreadRunning = false
-local playerPedId = PlayerPedId()
-local playerPedCoords = GetEntityCoords(playerPedId)
-local allPlayers = GetActivePlayers()
+local playerPedId, playerPedCoords, allPlayers = nil, nil, nil
 
 local function overrideVoiceProximityCheck(reset)
     pcall(function()
@@ -14,10 +12,10 @@ local function overrideVoiceProximityCheck(reset)
 
         exports["pma-voice"]:overrideProximityCheck(function(player)
             local targetPedInstance = instancePlayers[GetPlayerServerId(player)] --[[Player(GetPlayerServerId(player)).state[Shared.State.playerInstance]]
-            if not targetPedInstance or targetPedInstance ~= currentInstance then return false end
+            if targetPedInstance ~= currentInstance then return false end
             local targetPed = GetPlayerPed(player)
             local voiceRange = GetConvar("voice_useNativeAudio", "false") == "true" and MumbleGetTalkerProximity() * 3 or MumbleGetTalkerProximity()
-            local distance = #(playerPedCoords - GetEntityCoords(targetPed))
+            local distance = #((playerPedCoords or GetEntityCoords(PlayerPedId())) - GetEntityCoords(targetPed))
             return distance < voiceRange, distance
         end)
     end)
@@ -28,7 +26,7 @@ local function runInstanceThread()
     isThreadRunning = true
 
     CreateThread(function()
-        while currentInstance do
+        while isThreadRunning do
             playerPedId = PlayerPedId()
             playerPedCoords = GetEntityCoords(playerPedId)
             allPlayers = GetActivePlayers()
@@ -37,8 +35,7 @@ local function runInstanceThread()
     end)
 
     CreateThread(function()
-        playerPedId = PlayerPedId()
-        SetEntityVisible(playerPedId, false, false) -- hide your ped from everyone
+        SetEntityVisible(PlayerPedId(), false, false) -- hide your ped from everyone
         overrideVoiceProximityCheck()
 
         while isThreadRunning and currentInstance do
@@ -63,8 +60,8 @@ local function runInstanceThread()
         end
 
         isThreadRunning = false
-        playerPedId = PlayerPedId()
-        SetEntityVisible(playerPedId, true, false) -- show your ped to everyone
+        playerPedId, playerPedCoords, allPlayers = nil, nil, nil
+        SetEntityVisible(PlayerPedId(), true, false) -- show your ped to everyone
         overrideVoiceProximityCheck(true)
     end)
 end
@@ -133,6 +130,11 @@ end
 
 AddEventHandler("onResourceStop", onResourceStop)
 AddEventHandler("onClientResourceStop", onResourceStop)
+
+if Config.OverrideVoiceProximityCheckByDefault then
+    overrideVoiceProximityCheck()
+    function overrideVoiceProximityCheck(_) return end
+end
 
 if Config.Debug then
     -- FOR NOW, enterInstance EXPORT MUST NOT BE USED - USE SERVER-SIDE EXPORTS INSTEAD

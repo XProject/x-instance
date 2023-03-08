@@ -10,6 +10,9 @@ Shared.State.globalInstancePlayers = ("%s_globalInstancePlayers"):format(Shared.
 
 Shared.State.playerInstance = ("%s_playerInstance"):format(Shared.currentResourceName)
 
+---@alias playerSource number
+---@alias instanceName string
+
 function dumpTable(table, nb)
     if nb == nil then
         nb = 0

@@ -1,6 +1,3 @@
----@alias playerSource number
----@alias instanceName string
-
 ---@type { [string]: table<number, playerSource> }
 local instances = {}
 
