@@ -69,6 +69,13 @@ local function runInstanceThread()
     end)
 end
 
+---@param instanceName string
+---@return boolean
+local function doesInstanceExist(instanceName)
+    return instances[instanceName] and true or false
+end
+exports("doesInstanceExist", doesInstanceExist)
+
 -- FOR NOW, enterInstance EXPORT MUST NOT BE USED - USE SERVER-SIDE EXPORTS INSTEAD
 ---@param instanceName string
 ---@return boolean, string
@@ -82,6 +89,20 @@ local function enterInstance(instanceName)
     return true, "successful"
 end
 exports("enterInstance", enterInstance)
+
+---@param instanceName string
+---@return table<number, playerSource> | nil
+local function getInstancePlayers(instanceName)
+    return instances[instanceName]
+end
+exports("getInstancePlayers", getInstancePlayers)
+
+---@param source? string
+---@return string | nil
+local function getPlayerInstance(source)
+    return source and instancePlayers[source] or instancePlayers[PLAYER_SERVER_ID]
+end
+exports("getPlayerInstance", getPlayerInstance)
 
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.globalInstances, nil, function(_, _, value)

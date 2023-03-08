@@ -1,6 +1,10 @@
 ---@alias playerSource number
+---@alias instanceName string
+
 ---@type { [string]: table<number, playerSource> }
 local instances = {}
+
+---@type { [playerSource]: instanceName }
 local instancePlayers = {}
 
 do
@@ -46,7 +50,7 @@ end
 exports("addInstanceType", addInstanceType)
 
 ---@param instanceName string
----@param forceRemovePlayers boolean?
+---@param forceRemovePlayers? boolean
 ---@return boolean, string
 local function removeInstanceType(instanceName, forceRemovePlayers)
     if not instanceName then return false, "instance_not_valid" end
@@ -75,10 +79,10 @@ exports("removeInstanceType", removeInstanceType)
 
 ---@param source number
 ---@param instanceName string
----@param forceAddPlayer boolean?
+---@param forceAddPlayer? boolean
 ---@return boolean, string
 local function addToInstance(source, instanceName, forceAddPlayer)
-    if not doesInstanceExist(instanceName) then Player(source).state:set(Shared.State.playerInstance, nil, true) return false, "instance_not_exist" end
+    if not doesInstanceExist(instanceName) then return false, "instance_not_exist" end
 
     for index = 1, #instances[instanceName] do
         if instances[instanceName][index] == source then
@@ -113,7 +117,7 @@ end
 exports("addToInstance", addToInstance)
 
 ---@param source number
----@param instanceName string?
+---@param instanceName? string
 ---@return boolean, string
 local function removeFromInstance(source, instanceName)
     instanceName = instanceName or Player(source).state[Shared.State.playerInstance] --[[@as string]]
@@ -140,6 +144,20 @@ local function removeFromInstance(source, instanceName)
     return true, "successful"
 end
 exports("removeFromInstance", removeFromInstance)
+
+---@param instanceName string
+---@return table<number, playerSource> | nil
+local function getInstancePlayers(instanceName)
+    return instances[instanceName]
+end
+exports("getInstancePlayers", getInstancePlayers)
+
+---@param source string
+---@return string | nil
+local function getPlayerInstance(source)
+    return instancePlayers[source]
+end
+exports("getPlayerInstance", getPlayerInstance)
 
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, value)
