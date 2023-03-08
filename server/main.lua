@@ -171,6 +171,11 @@ if Config.Debug then
         print(success, message)
     end, false)
 
+    RegisterCommand("removeInstanceType", function(source, args)
+        local success, message = exports[Shared.currentResourceName]:removeInstanceType(args[1], args[2])
+        print(success, message)
+    end, false)
+
     RegisterCommand("addToInstance", function(source, args)
         local success, message = exports[Shared.currentResourceName]:addToInstance(source, args[1], args[2] and true)
         print(success, message)
@@ -191,7 +196,7 @@ if Config.Debug then
         return res
     end
 
-    for _ = 1, 30 do
+    for _ = 1, 1024 do
         instances[randomString(10)] = {}
     end
 

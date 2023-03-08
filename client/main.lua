@@ -13,7 +13,7 @@ local function overrideVoiceProximityCheck(reset)
         if reset then return exports["pma-voice"]:resetProximityCheck() end
 
         exports["pma-voice"]:overrideProximityCheck(function(player)
-            local targetPedInstance = Player(GetPlayerServerId(player)).state[Shared.State.playerInstance]
+            local targetPedInstance = instancePlayers[GetPlayerServerId(player)] --[[Player(GetPlayerServerId(player)).state[Shared.State.playerInstance]]
             if not targetPedInstance or targetPedInstance ~= currentInstance then return false end
             local targetPed = GetPlayerPed(player)
             local voiceRange = GetConvar("voice_useNativeAudio", "false") == "true" and MumbleGetTalkerProximity() * 3 or MumbleGetTalkerProximity()
@@ -106,7 +106,7 @@ end)
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.globalInstancePlayers, nil, function(_, _, value)
     instancePlayers = value
-    print(dumpTable(instancePlayers))
+    -- print(dumpTable(instancePlayers))
 end)
 
 AddStateBagChangeHandler(Shared.State.playerInstance, ("player:%s"):format(PLAYER_SERVER_ID), function(bagName, _, value)
