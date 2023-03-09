@@ -105,6 +105,14 @@ AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, 
     end
 end)
 
+local function onResourceStop(resource)
+    if resource ~= Shared.currentResourceName and not currentInstance then return end
+    NetworkConcealPlayer(PLAYER_ID, false, false)
+end
+
+AddEventHandler("onResourceStop", onResourceStop)
+AddEventHandler("onClientResourceStop", onResourceStop)
+
 if Config.Debug then
     -- FOR NOW, enterInstance EXPORT MUST NOT BE USED - USE SERVER-SIDE EXPORTS INSTEAD
     RegisterCommand("enterInstance", function(source, args)
