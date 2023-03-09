@@ -106,8 +106,16 @@ AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, 
 end)
 
 local function onResourceStop(resource)
-    if resource ~= Shared.currentResourceName and not currentInstance then return end
-    NetworkConcealPlayer(PLAYER_ID, false, false)
+    if resource ~= Shared.currentResourceName then return end
+    for playerServerId in pairs(instancePlayers) do
+        if playerServerId ~= PLAYER_SERVER_ID then
+            local player = GetPlayerFromServerId(playerServerId)
+
+            if player ~= -1 and NetworkIsPlayerActive(player) then
+                NetworkConcealPlayer(player, false, false)
+            end
+        end
+    end
 end
 
 AddEventHandler("onResourceStop", onResourceStop)
