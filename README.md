@@ -17,7 +17,7 @@ exports["x-instance"]:doesInstanceExist(instanceName)
 
 ---@param instanceName string
 ---@param hostSource? number
----@return table<number, playerSource> | table<hostSource, table<number, playerSource>> | nil
+---@return table<number, playerSource> | table<hostSource, table<number, playerSource>> | table
 exports["x-instance"]:getInstancePlayers(instanceName, hostSource)
 
 

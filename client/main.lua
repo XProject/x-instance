@@ -28,9 +28,9 @@ exports("enterInstance", enterInstance)
 
 ---@param instanceName string
 ---@param hostSource? number
----@return table<number, playerSource> | table<hostSource, table<number, playerSource>> | nil
+---@return table<number, playerSource> | table<hostSource, table<number, playerSource>> | table
 local function getInstancePlayers(instanceName, hostSource)
-    return hostSource and instances[instanceName][hostSource] or instances[instanceName]
+    return hostSource and instances[instanceName][hostSource] or instances[instanceName] or {}
 end
 exports("getInstancePlayers", getInstancePlayers)
 
@@ -70,45 +70,43 @@ AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, 
     currentInstance = value?.instance
     currentHost = value?.host
 
-    for instanceName, instanceData in pairs(instances) do
-        if instanceName == currentInstance then
-            for hostSource, players in pairs(instanceData) do
-                for i = 1, #players do
-                    local playerServerId = players[i]
+    local previousInstancePlayers = getInstancePlayers(previousInstance)
 
-                    if playerServerId ~= PLAYER_SERVER_ID then
-                        local player = GetPlayerFromServerId(players[i])
+    for _, players in pairs(previousInstancePlayers) do
+        for i = 1, #players do
+            local playerServerId = players[i]
 
-                        if player ~= -1 and NetworkIsPlayerActive(player) then
-                            local conceal = not (hostSource == currentHost)
-                            NetworkConcealPlayer(player, conceal, conceal)
-                        end
-                    end
+            if playerServerId ~= PLAYER_SERVER_ID then
+                local player = GetPlayerFromServerId(playerServerId)
+
+                if player ~= -1 and NetworkIsPlayerActive(player) then
+                    local conceal = instancePlayers[playerServerId] and true or false
+                    NetworkConcealPlayer(player, conceal, conceal)
                 end
             end
-            break
-        elseif instanceName == previousInstance then
-            for _, players in pairs(instanceData) do
-                for i = 1, #players do
-                    local playerServerId = players[i]
+        end
+    end
 
-                    if playerServerId ~= PLAYER_SERVER_ID then
-                        local player = GetPlayerFromServerId(players[i])
-                    
-                        if player ~= -1 and NetworkIsPlayerActive(player) then
-                            local conceal = instancePlayers[playerServerId] and true or false
-                            NetworkConcealPlayer(player, conceal, conceal)
-                        end
-                    end
+    local currentInstancePlayers = getInstancePlayers(currentInstance)
+
+    for hostSource, players in pairs(currentInstancePlayers) do
+        for i = 1, #players do
+            local playerServerId = players[i]
+
+            if playerServerId ~= PLAYER_SERVER_ID then
+                local player = GetPlayerFromServerId(playerServerId)
+
+                if player ~= -1 and NetworkIsPlayerActive(player) then
+                    local conceal = not (hostSource == currentHost)
+                    NetworkConcealPlayer(player, conceal, conceal)
                 end
             end
-            break
         end
     end
 end)
 
 local function onResourceStop(resource)
-    if resource ~= Shared.currentResourceName or not currentInstance then return end
+    if resource ~= Shared.currentResourceName and not currentInstance then return end
     NetworkConcealPlayer(PLAYER_ID, false, false)
 end
 
