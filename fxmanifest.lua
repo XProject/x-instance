@@ -4,8 +4,8 @@ lua54       "yes"
 game        "gta5"
 
 name        "x-instance"
-version     "0.5.0"
-repository  "https://github.com/XProject/x-radiolist"
+version     "0.6.0"
+repository  "https://github.com/XProject/x-instance"
 description "Project-X Instance: Player instancing system like Rockstar"
 
 shared_scripts {
