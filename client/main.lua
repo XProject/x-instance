@@ -4,8 +4,6 @@ local currentInstance = nil
 local currentHost = nil
 local PLAYER_ID = PlayerId()
 local PLAYER_SERVER_ID = GetPlayerServerId(PLAYER_ID)
-local isThreadRunning = false
-local playerPedId, playerPedCoords = nil, nil
 
 local function overrideVoiceProximityCheck(reset)
     pcall(function()
@@ -18,29 +16,16 @@ local function overrideVoiceProximityCheck(reset)
             if targetPlayerInstance ~= currentInstance or targetPlayerInstanceHost ~= currentHost then return false end
             local targetPed = GetPlayerPed(player)
             local voiceRange = GetConvar("voice_useNativeAudio", "false") == "true" and MumbleGetTalkerProximity() * 3 or MumbleGetTalkerProximity()
-            local distance = #((playerPedCoords or GetEntityCoords(PlayerPedId())) - GetEntityCoords(targetPed))
+            local distance = #(GetEntityCoords(PlayerPedId()) - GetEntityCoords(targetPed))
             return distance < voiceRange, distance
         end)
     end)
 end
 
 local function runInstanceThread()
-    if isThreadRunning or not currentInstance then return end
-    isThreadRunning = true
+    if currentInstance then return overrideVoiceProximityCheck() end
 
-    CreateThread(function()
-        overrideVoiceProximityCheck()
-
-        while currentInstance do
-            playerPedId = PlayerPedId()
-            playerPedCoords = GetEntityCoords(playerPedId)
-            Wait(1000)
-        end
-
-        isThreadRunning = false
-        playerPedId, playerPedCoords = nil, nil
-        overrideVoiceProximityCheck(true)
-    end)
+    overrideVoiceProximityCheck(true) -- reset back the voice proximity check
 end
 
 ---@param instanceName string

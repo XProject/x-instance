@@ -73,6 +73,6 @@ exports["x-instance"]:getPlayerInstance(source)
 
 ## TODO
 - [x] Find a way to prevent instanced players from hearing each other(possibly through pma-voice export).
-- [ ] Find a way to disable pvp between instanced players that are not in a same instance.
-- [ ] Find a way to disable gun shots to be heard by instanced players.
+- [x] Find a way to disable pvp between instanced players that are not in a same instance.
+- [x] Find a way to disable gun shots to be heard by instanced players.
 - [x] Optimize it more than its current state.
