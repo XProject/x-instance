@@ -1,5 +1,5 @@
-local instances = GlobalState[Shared.State.globalInstances]
-local instancePlayers = GlobalState[Shared.State.globalInstancePlayers]
+local instances = GlobalState[Shared.State.globalInstances] --[[ @as xInstances[] ]]
+local instancePlayers = GlobalState[Shared.State.globalInstancePlayers] --[[ @as xInstancePlayers[] ]]
 local currentInstance = nil
 local currentHost = nil
 local PLAYER_ID = PlayerId()
@@ -29,38 +29,16 @@ local function runInstanceThread()
     isThreadRunning = true
 
     CreateThread(function()
-        local count = 0
-        while isThreadRunning do
+        overrideVoiceProximityCheck()
+
+        while currentInstance do
             playerPedId = PlayerPedId()
             playerPedCoords = GetEntityCoords(playerPedId)
             Wait(1000)
         end
-    end)
-
-    CreateThread(function()
-        SetEntityVisible(PlayerPedId(), false, false) -- hide your ped from everyone
-        overrideVoiceProximityCheck()
-
-        while isThreadRunning and currentInstance do
-            for hostSource, players in pairs(instances[currentInstance]) do
-                local targetPlayer = GetPlayerFromServerId(players[i])
-                local targetPlayerPed = GetPlayerPed(targetPlayer)
-                if hostSource == currentHost then
-                    for _ = 1, #players do
-                        SetEntityLocallyVisible(targetPlayerPed) -- show hidden peds that are in same instance as you
-                    end
-                else
-                    for _ = 1, #players do
-                        SetEntityNoCollisionEntity(targetPlayerPed, playerPedId, true) -- disable collision with other hidden peds who are in an instance but NOT in a same one as you
-                    end
-                end
-            end
-            Wait(0)
-        end
 
         isThreadRunning = false
-        playerPedId, playerPedCoords, allPlayers = nil, nil, nil
-        SetEntityVisible(PlayerPedId(), true, false) -- show your ped to everyone
+        playerPedId, playerPedCoords = nil, nil
         overrideVoiceProximityCheck(true)
     end)
 end
@@ -112,20 +90,66 @@ AddStateBagChangeHandler(Shared.State.globalInstancePlayers, nil, function(_, _,
     instancePlayers = value
 end)
 
-AddStateBagChangeHandler(Shared.State.playerInstance, ("player:%s"):format(PLAYER_SERVER_ID), function(bagName, _, value)
+---@diagnostic disable-next-line: param-type-mismatch
+AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, value)
     local playerHandler = GetPlayerFromStateBagName(bagName)
     local source = tonumber(bagName:gsub("player:", ""), 10)
-    if not playerHandler or playerHandler == 0 or source ~= PLAYER_SERVER_ID then return end
+
+    if not playerHandler or playerHandler == 0 then return end
+
+    if source ~= PLAYER_SERVER_ID then
+        local state = value and not (value.instance == currentInstance and value.host == currentHost) or false
+        NetworkConcealPlayer(playerHandler, state, state)
+        return
+    end
+
+    local previousInstance = currentInstance
 
     currentInstance = value?.instance
     currentHost = value?.host
 
     runInstanceThread()
+
+    for instanceName, instanceData in pairs(instances) do
+        if currentInstance and instanceName == currentInstance then
+            for hostSource, players in pairs(instanceData) do
+                for i = 1, #players do
+                    local playerServerId = players[i]
+
+                    if playerServerId ~= PLAYER_SERVER_ID then
+                        local player = GetPlayerFromServerId(players[i])
+
+                        if player ~= -1 and NetworkIsPlayerActive(player) then
+                            local conceal = not (hostSource == currentHost)
+                            NetworkConcealPlayer(player, conceal, conceal)
+                        end
+                    end
+                end
+            end
+            break
+        elseif previousInstance and instanceName == previousInstance then
+            for _, players in pairs(instanceData) do
+                for i = 1, #players do
+                    local playerServerId = players[i]
+
+                    if playerServerId ~= PLAYER_SERVER_ID then
+                        local player = GetPlayerFromServerId(players[i])
+                    
+                        if player ~= -1 and NetworkIsPlayerActive(player) then
+                            local conceal = instancePlayers[playerServerId] and true or false
+                            NetworkConcealPlayer(player, conceal, conceal)
+                        end
+                    end
+                end
+            end
+            break
+        end
+    end
 end)
 
 local function onResourceStop(resource)
     if resource ~= Shared.currentResourceName or not currentInstance then return end
-    SetEntityVisible(PlayerPedId(), true, false)
+    NetworkConcealPlayer(PLAYER_ID, false, false)
 end
 
 AddEventHandler("onResourceStop", onResourceStop)
