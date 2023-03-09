@@ -1,14 +1,3 @@
----@class xInstanceData
----@field playerSource number
-
----@class xInstances
----@field instance string
----@field players  xInstanceData[]
-
----@class xInstancePlayers
----@field instance string
----@field host number
-
 ---@type xInstances[]
 local instances = {}
 
@@ -267,4 +256,3 @@ if Config.Debug then
     syncInstances()
     ]]
 end
-
