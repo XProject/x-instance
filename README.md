@@ -49,7 +49,7 @@ exports["x-instance"]:removeInstanceType(instanceName, forceRemovePlayers)
 ---@param instanceHost? number
 ---@param forceAddPlayer? boolean
 ---@return boolean, string
-exports["x-instance"]:addToInstance(source, instanceName, forceAddPlayer)
+exports["x-instance"]:addToInstance(source, instanceName, instanceHost, forceAddPlayer)
 
 
 ---@param source number

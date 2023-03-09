@@ -5,29 +5,6 @@ local currentHost = nil
 local PLAYER_ID = PlayerId()
 local PLAYER_SERVER_ID = GetPlayerServerId(PLAYER_ID)
 
-local function overrideVoiceProximityCheck(reset)
-    pcall(function()
-        if reset then return exports["pma-voice"]:resetProximityCheck() end
-
-        exports["pma-voice"]:overrideProximityCheck(function(player)
-            local targetPlayerServerId = GetPlayerServerId(player)
-            local targetPlayerInstance = instancePlayers[targetPlayerServerId]?.instance
-            local targetPlayerInstanceHost = instancePlayers[targetPlayerServerId]?.host
-            if targetPlayerInstance ~= currentInstance or targetPlayerInstanceHost ~= currentHost then return false end
-            local targetPed = GetPlayerPed(player)
-            local voiceRange = GetConvar("voice_useNativeAudio", "false") == "true" and MumbleGetTalkerProximity() * 3 or MumbleGetTalkerProximity()
-            local distance = #(GetEntityCoords(PlayerPedId()) - GetEntityCoords(targetPed))
-            return distance < voiceRange, distance
-        end)
-    end)
-end
-
-local function runInstanceThread()
-    if currentInstance then return overrideVoiceProximityCheck() end
-
-    overrideVoiceProximityCheck(true) -- reset back the voice proximity check
-end
-
 ---@param instanceName string
 ---@return boolean
 local function doesInstanceExist(instanceName)
@@ -93,10 +70,8 @@ AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, 
     currentInstance = value?.instance
     currentHost = value?.host
 
-    runInstanceThread()
-
     for instanceName, instanceData in pairs(instances) do
-        if currentInstance and instanceName == currentInstance then
+        if instanceName == currentInstance then
             for hostSource, players in pairs(instanceData) do
                 for i = 1, #players do
                     local playerServerId = players[i]
@@ -112,7 +87,7 @@ AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, 
                 end
             end
             break
-        elseif previousInstance and instanceName == previousInstance then
+        elseif instanceName == previousInstance then
             for _, players in pairs(instanceData) do
                 for i = 1, #players do
                     local playerServerId = players[i]
@@ -139,11 +114,6 @@ end
 
 AddEventHandler("onResourceStop", onResourceStop)
 AddEventHandler("onClientResourceStop", onResourceStop)
-
-if Config.OverrideVoiceProximityCheckByDefault then
-    overrideVoiceProximityCheck()
-    function overrideVoiceProximityCheck(_) return end
-end
 
 if Config.Debug then
     -- FOR NOW, enterInstance EXPORT MUST NOT BE USED - USE SERVER-SIDE EXPORTS INSTEAD
