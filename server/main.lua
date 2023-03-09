@@ -190,6 +190,7 @@ end)
 
 local function onResourceStop(resource)
     if resource ~= Shared.currentResourceName then return end
+    GlobalState:set(Shared.State.globalInstancePlayers, {}, true)
     GlobalState:set(Shared.State.globalInstances, {}, true)
     resetStateBag()
 end
