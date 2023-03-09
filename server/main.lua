@@ -222,8 +222,8 @@ if Config.Debug then
         print(success, message)
     end, false)
 
-    --[[
     -- populate instances table for testing the execution time of iterating over it in client
+    --[[
     math.randomseed()
     function randomString(length)
         local res = ""
