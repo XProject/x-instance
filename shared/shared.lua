@@ -6,7 +6,7 @@ Shared.State = {}
 
 Shared.State.globalInstances = ("%s_globalInstances"):format(Shared.currentResourceName)
 
-Shared.State.globalInstancePlayers = ("%s_globalInstancePlayers"):format(Shared.currentResourceName)
+Shared.State.globalInstancedPlayers = ("%s_globalInstancedPlayers"):format(Shared.currentResourceName)
 
 Shared.State.playerInstance = ("%s_playerInstance"):format(Shared.currentResourceName)
 

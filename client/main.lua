@@ -1,5 +1,5 @@
 local instances = GlobalState[Shared.State.globalInstances] --[[ @as xInstances[] ]]
-local instancePlayers = GlobalState[Shared.State.globalInstancePlayers] --[[ @as xInstancePlayers[] ]]
+local instancedPlayers = GlobalState[Shared.State.globalInstancedPlayers] --[[ @as xInstancePlayers[] ]]
 local currentInstance = nil
 local currentHost = nil
 local PLAYER_ID = PlayerId()
@@ -37,19 +37,19 @@ exports("getInstancePlayers", getInstancePlayers)
 ---@param source? number
 ---@return string | nil
 local function getPlayerInstance(source)
-    return source and instancePlayers[source]?.instance or instancePlayers[PLAYER_SERVER_ID]?.instance
+    return source and instancedPlayers[source]?.instance or instancedPlayers[PLAYER_SERVER_ID]?.instance
 end
 exports("getPlayerInstance", getPlayerInstance)
 
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.globalInstances, nil, function(_, _, value)
     instances = value
-    print(dumpTable(instances))
+    -- print(dumpTable(instances))
 end)
 
 ---@diagnostic disable-next-line: param-type-mismatch
-AddStateBagChangeHandler(Shared.State.globalInstancePlayers, nil, function(_, _, value)
-    instancePlayers = value
+AddStateBagChangeHandler(Shared.State.globalInstancedPlayers, nil, function(_, _, value)
+    instancedPlayers = value
 end)
 
 ---@diagnostic disable-next-line: param-type-mismatch
@@ -80,7 +80,7 @@ AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, 
                 local player = GetPlayerFromServerId(playerServerId)
 
                 if player ~= -1 and NetworkIsPlayerActive(player) then
-                    local conceal = instancePlayers[playerServerId] and true or false
+                    local conceal = instancedPlayers[playerServerId] and true or false
                     NetworkConcealPlayer(player, conceal, conceal)
                 end
             end
@@ -107,7 +107,7 @@ end)
 
 local function onResourceStop(resource)
     if resource ~= Shared.currentResourceName then return end
-    for playerServerId in pairs(instancePlayers) do
+    for playerServerId in pairs(instancedPlayers) do
         if playerServerId ~= PLAYER_SERVER_ID then
             local player = GetPlayerFromServerId(playerServerId)
 
