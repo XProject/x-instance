@@ -1,5 +1,5 @@
 local instances = GlobalState[Shared.State.globalInstances] --[[ @as xInstances[] ]]
-local instancedPlayers = GlobalState[Shared.State.globalInstancedPlayers] --[[ @as xInstancePlayers[] ]]
+local instancedPlayers = GlobalState[Shared.State.globalInstancedPlayers] --[[ @as xInstancedPlayers[] ]]
 local currentInstance = nil
 local currentHost = nil
 local PLAYER_ID = PlayerId()

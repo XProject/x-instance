@@ -1,7 +1,7 @@
 ---@type xInstances[]
 local instances = {}
 
----@type xInstancePlayers[]
+---@type xInstancedPlayers[]
 local instancedPlayers = {}
 
 do

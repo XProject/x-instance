@@ -17,7 +17,7 @@ Shared.State.playerInstance = ("%s_playerInstance"):format(Shared.currentResourc
 ---@class xInstances
 ---@field [instanceName] table<hostSource, playerSource[]>
 
----@class xInstancePlayers
+---@class xInstancedPlayers
 ---@field instance instanceName
 ---@field host hostSource
 
