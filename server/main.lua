@@ -70,9 +70,7 @@ local function removeInstanceType(instanceName, forceRemovePlayers)
         end
     end
 
-
-    ---@diagnostic disable-next-line: cast-local-type
-    instanceToRemove = nil
+    instances[instanceName] = nil
 
     syncInstances()
 
@@ -108,22 +106,23 @@ local function addToInstance(source, instanceName, instanceHost, forceAddPlayer)
             local playerSource = currentInstancePlayers[index]
             if playerSource == source then
                 if forceAddPlayer then
-                    table.remove(instances[currentInstanceName][currentInstanceHost], index)
+                    table.remove(currentInstancePlayers, index)
                     break
                 else
                     return false, "player_in_another_instance"
                 end
             end
         end
-    
+
         if #currentInstancePlayers < 1 then
             currentInstancePlayers = nil
         end
+
+        instances[currentInstanceName][currentInstanceHost] = currentInstancePlayers
     end
 
     instancePlayers[source] = {instance = instanceName, host = instanceHost}
     table.insert(instanceToJoinPlayers, source)
-    -- instances[instanceName][instanceHost] = instanceToJoinPlayers
 
     if GetInvokingResource() then -- got call through exports on server
         Player(source).state:set(Shared.State.playerInstance, instancePlayers[source], true)
@@ -151,18 +150,22 @@ local function removeFromInstance(source, instanceName)
 
     Player(source).state:set(Shared.State.playerInstance, nil, true)
 
-    local currentInstancePlayers = (instanceName and currentInstanceHost) and instances[instanceName]?[currentInstanceHost] or {}
+    local currentInstancePlayers = (instanceName and currentInstanceHost) and instances[instanceName]?[currentInstanceHost]
 
-    for index = 1, #currentInstancePlayers do
-        local playerSource = currentInstancePlayers[index]
-        if playerSource == source then
-            table.remove(currentInstancePlayers, index)
-            break
+    if currentInstancePlayers then
+        for index = 1, #currentInstancePlayers do
+            local playerSource = currentInstancePlayers[index]
+            if playerSource == source then
+                table.remove(currentInstancePlayers, index)
+                break
+            end
         end
-    end
 
-    if #currentInstancePlayers < 1 then
-        currentInstancePlayers = nil
+        if #currentInstancePlayers < 1 then
+            currentInstancePlayers = nil
+        end
+
+        instances[instanceName][currentInstanceHost] = currentInstancePlayers
     end
 
     syncInstances()
