@@ -14,16 +14,12 @@ Shared.State.playerInstance = ("%s_playerInstance"):format(Shared.currentResourc
 ---@alias instanceName string
 ---@alias hostSource playerSource
 
----@class xInstanceData
----@field playerSource number
-
 ---@class xInstances
----@field instance string
----@field players  xInstanceData[]
+---@field [instanceName] table<hostSource, playerSource[]>
 
 ---@class xInstancePlayers
----@field instance string
----@field host number
+---@field instance instanceName
+---@field host hostSource
 
 function dumpTable(table, nb)
     if nb == nil then
@@ -37,12 +33,12 @@ function dumpTable(table, nb)
         end
 
         s = '{\n'
-        for k,v in pairs(table) do
-            if type(k) ~= 'number' then k = '"'..k..'"' end
+        for k, v in pairs(table) do
+            if type(k) ~= 'number' then k = '"' .. k .. '"' end
             for i = 1, nb, 1 do
                 s = s .. "    "
             end
-            s = s .. '['..k..'] = ' .. dumpTable(v, nb + 1) .. ',\n'
+            s = s .. '[' .. k .. '] = ' .. dumpTable(v, nb + 1) .. ',\n'
         end
 
         for i = 1, nb, 1 do

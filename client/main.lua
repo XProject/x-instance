@@ -44,7 +44,7 @@ exports("getPlayerInstance", getPlayerInstance)
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.globalInstances, nil, function(_, _, value)
     instances = value
-    -- print(dumpTable(instances))
+    print(dumpTable(instances))
 end)
 
 ---@diagnostic disable-next-line: param-type-mismatch
