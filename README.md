@@ -76,3 +76,4 @@ exports["x-instance"]:getPlayerInstance(source)
 - [x] Find a way to disable pvp between instanced players that are not in a same instance.
 - [x] Find a way to disable gun shots to be heard by instanced players.
 - [x] Optimize it more than its current state.
+- [ ] Add required exports to make vehicle entities concealed.(for usage in Rockstart-like garages👀 & a lot more)
