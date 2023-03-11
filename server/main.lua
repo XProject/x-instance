@@ -214,6 +214,10 @@ AddEventHandler("playerJoining", function()
     resetStateBag(source)
 end)
 
+AddEventHandler("playerDropped", function()
+    removeFromInstance(source)
+end)
+
 if Config.Debug then
     RegisterCommand("addInstanceType", function(source, args)
         local success, message = exports[Shared.currentResourceName]:addInstanceType(args[1])
