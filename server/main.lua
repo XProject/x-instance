@@ -1,8 +1,8 @@
 ---@type xInstances[]
 local instances = {}
 
----@type xInstancePlayers[]
-local instancePlayers = {}
+---@type xInstancedPlayers[]
+local instancedPlayers = {}
 
 do
     for index = 1, #Config.Instances do
@@ -11,7 +11,7 @@ do
 end
 
 local function syncInstances()
-    GlobalState:set(Shared.State.globalInstancePlayers, instancePlayers, true)
+    GlobalState:set(Shared.State.globalInstancedPlayers, instancedPlayers, true)
     GlobalState:set(Shared.State.globalInstances, instances, true)
 end
 CreateThread(syncInstances)
@@ -54,18 +54,19 @@ local function removeInstanceType(instanceName, forceRemovePlayers)
 
     if not doesInstanceExist(instanceName) then return false, "instance_not_exist" end
 
+    local instanceToRemove = instances[instanceName]
+
     if not forceRemovePlayers then
-        for _, players in pairs(instances[instanceName]) do
-            for _ = 1, #players do
-                return false, "instance_is_occupied"
-            end
+        for _, players in pairs(instanceToRemove) do
+            if #players > 0 then return false, "instance_is_occupied" end
         end
     end
 
-    for _, players in pairs(instances[instanceName]) do
+    for _, players in pairs(instanceToRemove) do
         for index = 1, #players do
-            instancePlayers[players[index]] = nil
-            Player(players[index]).state:set(Shared.State.playerInstance, nil, true)
+            local source = players[index]
+            instancedPlayers[source] = nil
+            Player(source).state:set(Shared.State.playerInstance, nil, true)
         end
     end
 
@@ -87,39 +88,44 @@ local function addToInstance(source, instanceName, instanceHost, forceAddPlayer)
 
     instanceHost = instanceHost or source
     instances[instanceName][instanceHost] = instances[instanceName][instanceHost] or {}
+    local instanceToJoinPlayers = instances[instanceName][instanceHost]
 
-    for index = 1, #instances[instanceName][instanceHost] do
-        if instances[instanceName][instanceHost][index] == source then
+    for index = 1, #instanceToJoinPlayers do
+        local playerSource = instanceToJoinPlayers[index]
+        if playerSource == source then
             return false, "player_already_in_instance"
         end
     end
 
-    local currentInstanceName = instancePlayers[source]?.instance
-    local currentInstanceHost = instancePlayers[source]?.host
+    local currentInstanceName = instancedPlayers[source]?.instance
+    local currentInstanceHost = instancedPlayers[source]?.host
+    local currentInstancePlayers = (currentInstanceName and currentInstanceHost) and instances[currentInstanceName]?[currentInstanceHost]
 
-    if currentInstanceName then
-        for index = 1, #instances[currentInstanceName][currentInstanceHost] do
-            if instances[currentInstanceName][currentInstanceHost][index] == source then
+    if currentInstancePlayers then
+        for index = 1, #currentInstancePlayers do
+            local playerSource = currentInstancePlayers[index]
+            if playerSource == source then
                 if forceAddPlayer then
-                    table.remove(instances[currentInstanceName][currentInstanceHost], index)
+                    table.remove(currentInstancePlayers, index)
                     break
                 else
                     return false, "player_in_another_instance"
                 end
             end
         end
+
+        if #currentInstancePlayers < 1 then
+            currentInstancePlayers = nil
+        end
+
+        instances[currentInstanceName][currentInstanceHost] = currentInstancePlayers
     end
 
-    local instanceToDelete = instances[currentInstanceName]?[currentInstanceHost]
-    if type(instanceToDelete) == "table" and #instanceToDelete <= 0 then
-        instances[currentInstanceName][currentInstanceHost] = nil
-    end
-
-    instancePlayers[source] = {instance = instanceName, host = instanceHost}
-    table.insert(instances[instanceName][instanceHost], source)
+    instancedPlayers[source] = {instance = instanceName, host = instanceHost}
+    table.insert(instanceToJoinPlayers, source)
 
     if GetInvokingResource() then -- got call through exports on server
-        Player(source).state:set(Shared.State.playerInstance, instancePlayers[source], true)
+        Player(source).state:set(Shared.State.playerInstance, instancedPlayers[source], true)
     end
 
     syncInstances()
@@ -132,28 +138,34 @@ exports("addToInstance", addToInstance)
 ---@param instanceName? string
 ---@return boolean, string
 local function removeFromInstance(source, instanceName)
-    instanceName = instanceName or instancePlayers[source]?.instance
+    instanceName = instanceName or instancedPlayers[source]?.instance
     if not doesInstanceExist(instanceName) then return false, "instance_not_exist" end
 
-    local isSourceInInstance = instancePlayers[source] and true or false
+    local isSourceInInstance = instancedPlayers[source] and true or false
 
     if not isSourceInInstance then return false, "player_not_in_instance" end
 
-    local currentInstanceHost = instancePlayers[source]?.host
+    local currentInstanceHost = instancedPlayers[source]?.host
+    instancedPlayers[source] = nil
 
     Player(source).state:set(Shared.State.playerInstance, nil, true)
 
-    instancePlayers[source] = nil
+    local currentInstancePlayers = (instanceName and currentInstanceHost) and instances[instanceName]?[currentInstanceHost]
 
-    for index = 1, #instances[instanceName][currentInstanceHost] do
-        if instances[instanceName][currentInstanceHost][index] == source then
-            table.remove(instances[instanceName][currentInstanceHost], index)
-            break
+    if currentInstancePlayers then
+        for index = 1, #currentInstancePlayers do
+            local playerSource = currentInstancePlayers[index]
+            if playerSource == source then
+                table.remove(currentInstancePlayers, index)
+                break
+            end
         end
-    end
 
-    if #instances[instanceName][currentInstanceHost] <= 0 then
-        instances[instanceName][currentInstanceHost] = nil
+        if #currentInstancePlayers < 1 then
+            currentInstancePlayers = nil
+        end
+
+        instances[instanceName][currentInstanceHost] = currentInstancePlayers
     end
 
     syncInstances()
@@ -173,7 +185,7 @@ exports("getInstancePlayers", getInstancePlayers)
 ---@param source number
 ---@return string | nil
 local function getPlayerInstance(source)
-    return instancePlayers[source]?.instance
+    return instancedPlayers[source]?.instance
 end
 exports("getPlayerInstance", getPlayerInstance)
 
@@ -190,7 +202,7 @@ end)
 
 local function onResourceStop(resource)
     if resource ~= Shared.currentResourceName then return end
-    GlobalState:set(Shared.State.globalInstancePlayers, {}, true)
+    GlobalState:set(Shared.State.globalInstancedPlayers, {}, true)
     GlobalState:set(Shared.State.globalInstances, {}, true)
     resetStateBag()
 end
