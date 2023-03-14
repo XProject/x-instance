@@ -4,6 +4,9 @@ local instances = {}
 ---@type xInstancedPlayers[]
 local instancedPlayers = {}
 
+---@type xInstancedVehicles[]
+local instancedVehicles = {}
+
 do
     for index = 1, #Config.Instances do
         instances[Config.Instances[index]] = {}
@@ -12,6 +15,7 @@ end
 
 local function syncInstances()
     GlobalState:set(Shared.State.globalInstancedPlayers, instancedPlayers, true)
+    GlobalState:set(Shared.State.globalInstancedPlayers, instancedVehicles, true)
     GlobalState:set(Shared.State.globalInstances, instances, true)
 end
 CreateThread(syncInstances)
@@ -32,6 +36,14 @@ end
 exports("doesInstanceExist", doesInstanceExist)
 
 ---@param instanceName string
+---@param instanceHost number
+---@return boolean
+local function doesInstanceHostExist(instanceName, instanceHost)
+    return instances[instanceName]?[instanceHost] and true or false
+end
+exports("doesInstanceExist", doesInstanceExist)
+
+---@param instanceName string
 ---@return boolean, string
 local function addInstanceType(instanceName)
     if not instanceName then return false, "instance_not_valid" end
@@ -47,18 +59,20 @@ end
 exports("addInstanceType", addInstanceType)
 
 ---@param instanceName string
----@param forceRemovePlayers? boolean
+---@param forceRemove? boolean
 ---@return boolean, string
-local function removeInstanceType(instanceName, forceRemovePlayers)
+local function removeInstanceType(instanceName, forceRemove)
     if not instanceName then return false, "instance_not_valid" end
 
     if not doesInstanceExist(instanceName) then return false, "instance_not_exist" end
 
     local instanceToRemove = instances[instanceName]
 
-    if not forceRemovePlayers then
-        for _, players in pairs(instanceToRemove) do
-            if #players > 0 then return false, "instance_is_occupied" end
+    if not forceRemove then
+        for _, instanceData in pairs(instanceToRemove) do
+            local instanceDataPlayers = instanceData?.players
+            local instanceDataVehicles = instanceData?.vehicles
+            if (#instanceDataPlayers > 0) or (#instanceDataVehicles > 0) then return false, "instance_is_occupied" end
         end
     end
 
@@ -67,6 +81,26 @@ local function removeInstanceType(instanceName, forceRemovePlayers)
             local source = players[index]
             instancedPlayers[source] = nil
             Player(source).state:set(Shared.State.playerInstance, nil, true)
+        end
+    end
+
+    for _, instanceData in pairs(instanceToRemove) do
+        local instanceDataPlayers = instanceData?.players
+        if instanceDataPlayers then
+            for index = 1, #instanceDataPlayers do
+                local source = instanceDataPlayers[index]
+                instancedPlayers[source] = nil
+                Player(source).state:set(Shared.State.playerInstance, nil, true)
+            end
+        end
+
+        local instanceDataVehicles = instanceData?.vehicles
+        if instanceDataVehicles then
+            for index = 1, #instanceDataVehicles do
+                local vehicleId = instanceDataVehicles[index]
+                instancedVehicles[vehicleId] = nil
+                Entity(NetworkGetEntityFromNetworkId(vehicleId)).state:set(Shared.State.vehicleInstance, nil, true)
+            end
         end
     end
 
@@ -200,6 +234,65 @@ AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, 
     addToInstance(source, value)
 end)
 
+---@param vehicleNetId number
+---@param instanceName string
+---@param instanceHost number
+---@param forceAddVehicle? boolean
+---@return boolean, string
+local function addVehicleToInstance(vehicleNetId, instanceName, instanceHost, forceAddVehicle)
+    local vehicleEntity = NetworkGetEntityFromNetworkId(vehicleNetId)
+
+    if not DoesEntityExist(vehicleEntity) then return false, "vehicle_not_exist" end
+    if not doesInstanceExist(instanceName) then return false, "instance_not_exist" end
+    if not doesInstanceHostExist(instanceName, instanceHost) then return false, "instance_host_not_exist" end
+
+    instances[instanceName][instanceHost].vehicles = instances[instanceName][instanceHost].vehicles or {}
+    local instanceToJoinVehicles = instances[instanceName][instanceHost].vehicles
+
+    for index = 1, #instanceToJoinVehicles do
+        local vehicleId = instanceToJoinVehicles[index]
+        if vehicleId == vehicleNetId then
+            return false, "vehicle_already_in_instance"
+        end
+    end
+
+    local currentInstanceName = instancedVehicles[vehicleNetId]?.instance
+    local currentInstanceHost = instancedVehicles[vehicleNetId]?.host
+    local currentInstanceVehicles = (currentInstanceName and currentInstanceHost) and instances[currentInstanceName]?[currentInstanceHost]?.vehicles
+
+    if currentInstanceVehicles then
+        for index = 1, #currentInstanceVehicles do
+            local vehicleId = currentInstanceVehicles[index]
+            if vehicleId == vehicleNetId then
+                if forceAddVehicle then
+                    table.remove(currentInstanceVehicles, index)
+                    break
+                else
+                    return false, "vehicle_in_another_instance"
+                end
+            end
+        end
+
+        if #currentInstanceVehicles < 1 then
+            currentInstanceVehicles = nil
+        end
+
+        instances[currentInstanceName][currentInstanceHost].vehicles = currentInstanceVehicles
+    end
+
+    instancedVehicles[vehicleNetId] = {instance = instanceName, host = instanceHost}
+    table.insert(instanceToJoinVehicles, vehicleNetId)
+
+    if GetInvokingResource() then -- got call through exports on server
+        Entity(vehicleEntity).state:set(Shared.State.vehicleInstance, instancedVehicles[vehicleNetId], true)
+    end
+
+    syncInstances()
+
+    return true, "successful"
+end
+exports("addVehicleToInstance", addVehicleToInstance)
+
 local function onResourceStop(resource)
     if resource ~= Shared.currentResourceName then return end
     GlobalState:set(Shared.State.globalInstancedPlayers, {}, true)
@@ -238,38 +331,4 @@ if Config.Debug then
         local success, message = exports[Shared.currentResourceName]:removeFromInstance(source, args[1])
         print(success, message)
     end, false)
-
-    -- populate instances table for testing the execution time of iterating over it in client
-    --[[
-    math.randomseed()
-    function randomString(length)
-        local res = ""
-        for i = 1, length do
-            res = res .. string.char(math.random(97, 122))
-        end
-        return res
-    end
-
-    for _ = 1, 2 do
-        instances[randomString(10)] = {}
-    end
-
-    local count = 0
-    local jj = 0
-    for key in pairs(instances) do
-        local host = 10
-        jj = host
-        for _ = 1, 100 do
-            instances[key][host] = {}
-            for j = 10, 15 do
-                table.insert(instances[key][host], j)
-            end
-            host += 1
-        end
-        count = count + 1
-    end
-    print(dumpTable(instances), "count:", count)
-
-    syncInstances()
-    ]]
 end
