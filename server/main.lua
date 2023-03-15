@@ -20,13 +20,21 @@ local function syncInstances()
 end
 CreateThread(syncInstances)
 
-local function resetStateBag(source)
+local function resetPlayerStateBag(source)
     local allPlayers = source and {source} or GetPlayers()
     for index = 1, #allPlayers do
         Player(allPlayers[index]).state:set(Shared.State.playerInstance, nil, true)
     end
 end
-CreateThread(resetStateBag)
+CreateThread(resetPlayerStateBag)
+
+local function resetVehicleStateBag(vehicleNetId)
+    local allVehicles = vehicleNetId and {NetworkGetEntityFromNetworkId(vehicleNetId)} or GetAllVehicles()
+    for index = 1, #allVehicles do
+        Entity(allVehicles[index]).state:set(Shared.State.vehicleInstance, nil, true)
+    end
+end
+CreateThread(resetVehicleStateBag)
 
 ---@param instanceName string
 ---@return boolean
@@ -369,14 +377,15 @@ local function onResourceStop(resource)
     if resource ~= Shared.currentResourceName then return end
     GlobalState:set(Shared.State.globalInstancedPlayers, {}, true)
     GlobalState:set(Shared.State.globalInstances, {}, true)
-    resetStateBag()
+    resetPlayerStateBag()
+    resetVehicleStateBag()
 end
 
 AddEventHandler("onResourceStop", onResourceStop)
 AddEventHandler("onServerResourceStop", onResourceStop)
 
 AddEventHandler("playerJoining", function()
-    resetStateBag(source)
+    resetPlayerStateBag(source)
 end)
 
 AddEventHandler("playerDropped", function()
