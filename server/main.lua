@@ -183,7 +183,7 @@ local function removePlayerFromInstance(source, instanceName)
 
     Player(source).state:set(Shared.State.playerInstance, nil, true)
 
-    local currentInstancePlayers = (instanceName and currentInstanceHost) and instances[instanceName]?[currentInstanceHost]
+    local currentInstancePlayers = (instanceName and currentInstanceHost) and instances[instanceName]?[currentInstanceHost]?.players
 
     if currentInstancePlayers then
         for index = 1, #currentInstancePlayers do
@@ -198,7 +198,13 @@ local function removePlayerFromInstance(source, instanceName)
             currentInstancePlayers = nil
         end
 
-        instances[instanceName][currentInstanceHost] = currentInstancePlayers
+        instances[instanceName][currentInstanceHost].players = currentInstancePlayers
+
+        local instanceDataPlayers = instances[instanceName]?[currentInstanceHost]?.players
+        local instanceDataVehicles = instances[instanceName]?[currentInstanceHost]?.vehicles
+        if (#instanceDataPlayers < 1) and (#instanceDataVehicles < 1) then
+            instances[instanceName][currentInstanceHost] = nil
+        end
     end
 
     syncInstances()
@@ -243,7 +249,6 @@ local function addVehicleToInstance(vehicleNetId, instanceName, instanceHost, fo
 
     if not DoesEntityExist(vehicleEntity) then return false, "vehicle_not_exist" end
     if not doesInstanceExist(instanceName) then return false, "instance_not_exist" end
-    -- if not doesInstanceHostExist(instanceName, instanceHost) then return false, "instance_host_not_exist" end
 
     instances[instanceName][instanceHost] = instances[instanceName][instanceHost] or {}
     instances[instanceName][instanceHost].vehicles = instances[instanceName][instanceHost].vehicles or {}
@@ -298,6 +303,52 @@ local function addVehicleToInstance(vehicleNetId, instanceName, instanceHost, fo
     return true, "successful"
 end
 exports("addVehicleToInstance", addVehicleToInstance)
+
+---@param vehicleNetId number
+---@param instanceName? string
+---@return boolean, string
+local function removeVehicleFromInstance(vehicleNetId, instanceName)
+    instanceName = instanceName or instancedVehicles[vehicleNetId]?.instance
+    if not doesInstanceExist(instanceName) then return false, "instance_not_exist" end
+
+    local isVehicleInInstance = instancedVehicles[vehicleNetId] and true or false
+
+    if not isVehicleInInstance then return false, "vehicle_not_in_instance" end
+
+    local currentInstanceHost = instancedVehicles[vehicleNetId]?.host
+    instancedVehicles[vehicleNetId] = nil
+
+    Entity(NetworkGetEntityFromNetworkId(vehicleNetId)).state:set(Shared.State.vehicleInstance, nil, true)
+
+    local currentInstanceVehicles = (instanceName and currentInstanceHost) and instances[instanceName]?[currentInstanceHost]?.vehicles
+
+    if currentInstanceVehicles then
+        for index = 1, #currentInstanceVehicles do
+            local playerSource = currentInstanceVehicles[index]
+            if playerSource == source then
+                table.remove(currentInstanceVehicles, index)
+                break
+            end
+        end
+
+        if #currentInstanceVehicles < 1 then
+            currentInstanceVehicles = nil
+        end
+
+        instances[instanceName][currentInstanceHost].vehicles = currentInstanceVehicles
+
+        local instanceDataPlayers = instances[instanceName]?[currentInstanceHost]?.players
+        local instanceDataVehicles = instances[instanceName]?[currentInstanceHost]?.vehicles
+        if (#instanceDataPlayers < 1) and (#instanceDataVehicles < 1) then
+            instances[instanceName][currentInstanceHost] = nil
+        end
+    end
+
+    syncInstances()
+
+    return true, "successful"
+end
+exports("removeVehicleFromInstance", removeVehicleFromInstance)
 
 local function onResourceStop(resource)
     if resource ~= Shared.currentResourceName then return end
