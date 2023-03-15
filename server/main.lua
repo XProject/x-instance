@@ -15,7 +15,7 @@ end
 
 local function syncInstances()
     GlobalState:set(Shared.State.globalInstancedPlayers, instancedPlayers, true)
-    GlobalState:set(Shared.State.globalInstancedPlayers, instancedVehicles, true)
+    GlobalState:set(Shared.State.globalInstancedVehicles, instancedVehicles, true)
     GlobalState:set(Shared.State.globalInstances, instances, true)
 end
 CreateThread(syncInstances)
@@ -41,7 +41,7 @@ exports("doesInstanceExist", doesInstanceExist)
 local function doesInstanceHostExist(instanceName, instanceHost)
     return instances[instanceName]?[instanceHost] and true or false
 end
-exports("doesInstanceExist", doesInstanceExist)
+exports("doesInstanceHostExist", doesInstanceHostExist)
 
 ---@param instanceName string
 ---@return boolean, string
@@ -73,14 +73,6 @@ local function removeInstanceType(instanceName, forceRemove)
             local instanceDataPlayers = instanceData?.players
             local instanceDataVehicles = instanceData?.vehicles
             if (#instanceDataPlayers > 0) or (#instanceDataVehicles > 0) then return false, "instance_is_occupied" end
-        end
-    end
-
-    for _, players in pairs(instanceToRemove) do
-        for index = 1, #players do
-            local source = players[index]
-            instancedPlayers[source] = nil
-            Player(source).state:set(Shared.State.playerInstance, nil, true)
         end
     end
 
@@ -117,12 +109,13 @@ exports("removeInstanceType", removeInstanceType)
 ---@param instanceHost? number
 ---@param forceAddPlayer? boolean
 ---@return boolean, string
-local function addToInstance(source, instanceName, instanceHost, forceAddPlayer)
+local function addPlayerToInstance(source, instanceName, instanceHost, forceAddPlayer)
     if not doesInstanceExist(instanceName) then return false, "instance_not_exist" end
 
     instanceHost = instanceHost or source
     instances[instanceName][instanceHost] = instances[instanceName][instanceHost] or {}
-    local instanceToJoinPlayers = instances[instanceName][instanceHost]
+    instances[instanceName][instanceHost].players = instances[instanceName][instanceHost].players or {}
+    local instanceToJoinPlayers = instances[instanceName][instanceHost].players
 
     for index = 1, #instanceToJoinPlayers do
         local playerSource = instanceToJoinPlayers[index]
@@ -133,7 +126,7 @@ local function addToInstance(source, instanceName, instanceHost, forceAddPlayer)
 
     local currentInstanceName = instancedPlayers[source]?.instance
     local currentInstanceHost = instancedPlayers[source]?.host
-    local currentInstancePlayers = (currentInstanceName and currentInstanceHost) and instances[currentInstanceName]?[currentInstanceHost]
+    local currentInstancePlayers = (currentInstanceName and currentInstanceHost) and instances[currentInstanceName]?[currentInstanceHost]?.players
 
     if currentInstancePlayers then
         for index = 1, #currentInstancePlayers do
@@ -152,7 +145,13 @@ local function addToInstance(source, instanceName, instanceHost, forceAddPlayer)
             currentInstancePlayers = nil
         end
 
-        instances[currentInstanceName][currentInstanceHost] = currentInstancePlayers
+        instances[currentInstanceName][currentInstanceHost].players = currentInstancePlayers
+
+        local instanceDataPlayers = instances[currentInstanceName][currentInstanceHost]?.players
+        local instanceDataVehicles = instances[currentInstanceName][currentInstanceHost]?.vehicles
+        if (#instanceDataPlayers < 1) and (#instanceDataVehicles < 1) then
+            instances[currentInstanceName][currentInstanceHost] = nil
+        end
     end
 
     instancedPlayers[source] = {instance = instanceName, host = instanceHost}
@@ -166,12 +165,12 @@ local function addToInstance(source, instanceName, instanceHost, forceAddPlayer)
 
     return true, "successful"
 end
-exports("addToInstance", addToInstance)
+exports("addPlayerToInstance", addPlayerToInstance)
 
 ---@param source number
 ---@param instanceName? string
 ---@return boolean, string
-local function removeFromInstance(source, instanceName)
+local function removePlayerFromInstance(source, instanceName)
     instanceName = instanceName or instancedPlayers[source]?.instance
     if not doesInstanceExist(instanceName) then return false, "instance_not_exist" end
 
@@ -206,13 +205,13 @@ local function removeFromInstance(source, instanceName)
 
     return true, "successful"
 end
-exports("removeFromInstance", removeFromInstance)
+exports("removePlayerFromInstance", removePlayerFromInstance)
 
 ---@param instanceName string
----@param hostSource? number
----@return table<number, playerSource> | table<hostSource, table<number, playerSource>> | nil
+---@param hostSource number
+---@return table<number, playerSource> | nil
 local function getInstancePlayers(instanceName, hostSource)
-    return hostSource and instances[instanceName][hostSource] or instances[instanceName]
+    return instances[instanceName]?[hostSource]?.players
 end
 exports("getInstancePlayers", getInstancePlayers)
 
@@ -231,7 +230,7 @@ AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, 
 
     if GetInvokingResource() then return end -- got call through exports on server
 
-    addToInstance(source, value)
+    addPlayerToInstance(source, value)
 end)
 
 ---@param vehicleNetId number
@@ -244,8 +243,9 @@ local function addVehicleToInstance(vehicleNetId, instanceName, instanceHost, fo
 
     if not DoesEntityExist(vehicleEntity) then return false, "vehicle_not_exist" end
     if not doesInstanceExist(instanceName) then return false, "instance_not_exist" end
-    if not doesInstanceHostExist(instanceName, instanceHost) then return false, "instance_host_not_exist" end
+    -- if not doesInstanceHostExist(instanceName, instanceHost) then return false, "instance_host_not_exist" end
 
+    instances[instanceName][instanceHost] = instances[instanceName][instanceHost] or {}
     instances[instanceName][instanceHost].vehicles = instances[instanceName][instanceHost].vehicles or {}
     local instanceToJoinVehicles = instances[instanceName][instanceHost].vehicles
 
@@ -278,6 +278,12 @@ local function addVehicleToInstance(vehicleNetId, instanceName, instanceHost, fo
         end
 
         instances[currentInstanceName][currentInstanceHost].vehicles = currentInstanceVehicles
+
+        local instanceDataPlayers = instances[currentInstanceName]?[currentInstanceHost]?.players
+        local instanceDataVehicles = instances[currentInstanceName]?[currentInstanceHost]?.vehicles
+        if (#instanceDataPlayers < 1) and (#instanceDataVehicles < 1) then
+            instances[currentInstanceName][currentInstanceHost] = nil
+        end
     end
 
     instancedVehicles[vehicleNetId] = {instance = instanceName, host = instanceHost}
@@ -308,7 +314,7 @@ AddEventHandler("playerJoining", function()
 end)
 
 AddEventHandler("playerDropped", function()
-    removeFromInstance(source)
+    removePlayerFromInstance(source)
 end)
 
 if Config.Debug then
@@ -322,13 +328,13 @@ if Config.Debug then
         print(success, message)
     end, false)
 
-    RegisterCommand("addToInstance", function(source, args)
-        local success, message = exports[Shared.currentResourceName]:addToInstance(source, args[1], tonumber(args[2]), args[3] and true)
+    RegisterCommand("addPlayerToInstance", function(source, args)
+        local success, message = exports[Shared.currentResourceName]:addPlayerToInstance(source, args[1], tonumber(args[2]), args[3] and true)
         print(success, message)
     end, false)
 
-    RegisterCommand("removeFromInstance", function(source, args)
-        local success, message = exports[Shared.currentResourceName]:removeFromInstance(source, args[1])
+    RegisterCommand("removePlayerFromInstance", function(source, args)
+        local success, message = exports[Shared.currentResourceName]:removePlayerFromInstance(source, args[1])
         print(success, message)
     end, false)
 end
