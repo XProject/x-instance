@@ -215,9 +215,9 @@ exports("removePlayerFromInstance", removePlayerFromInstance)
 
 ---@param instanceName string
 ---@param hostSource number
----@return table<number, playerSource> | nil
+---@return table<number, playerSource>
 local function getInstancePlayers(instanceName, hostSource)
-    return instances[instanceName]?[hostSource]?.players
+    return instances[instanceName]?[hostSource]?.players or {}
 end
 exports("getInstancePlayers", getInstancePlayers)
 
@@ -352,9 +352,9 @@ exports("removeVehicleFromInstance", removeVehicleFromInstance)
 
 ---@param instanceName string
 ---@param hostSource number
----@return table<number, vehicleNetId> | nil
+---@return table<number, vehicleNetId>
 local function getInstanceVehicles(instanceName, hostSource)
-    return instances[instanceName]?[hostSource]?.vehicles
+    return instances[instanceName]?[hostSource]?.vehicles or {}
 end
 exports("getInstanceVehicles", getInstanceVehicles)
 

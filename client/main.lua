@@ -1,5 +1,9 @@
-local instances = GlobalState[Shared.State.globalInstances] --[[ @as xInstances[] ]]
-local instancedPlayers = GlobalState[Shared.State.globalInstancedPlayers] --[[ @as xInstancedPlayers[] ]]
+---@type xInstances[]
+local instances = GlobalState[Shared.State.globalInstances]
+---@type xInstancedPlayers[]
+local instancedPlayers = GlobalState[Shared.State.globalInstancedPlayers]
+---@type xInstancedVehicles[]
+local instancedVehicles = GlobalState[Shared.State.globalInstancedVehicles]
 local currentInstance = nil
 local currentHost = nil
 local PLAYER_ID = PlayerId()
@@ -12,99 +16,151 @@ local function doesInstanceExist(instanceName)
 end
 exports("doesInstanceExist", doesInstanceExist)
 
--- FOR NOW, enterInstance EXPORT MUST NOT BE USED - USE SERVER-SIDE EXPORTS INSTEAD
----@param instanceName string
----@return boolean, string
-local function enterInstance(instanceName)
-    if not instanceName then return false, "instance_not_valid" end
-
-    if not instances[instanceName] then return false, "instance_not_exist" end
-
-    LocalPlayer.state:set(Shared.State.playerInstance, instanceName, true)
-
-    return true, "successful"
-end
-exports("enterInstance", enterInstance)
-
 ---@param instanceName string
 ---@param hostSource? number
----@return table<number, playerSource> | table<hostSource, table<number, playerSource>> | table
+---@return xInstanceData | xInstances | table
+local function getInstanceData(instanceName, hostSource)
+    return instances[instanceName]?[hostSource] or (hostSource == nil and instances[instanceName]) or {}
+end
+exports("getInstancePlayers", getInstancePlayers)
+
+---@param instanceName string
+---@param hostSource number
+---@return table<number, playerSource>
 local function getInstancePlayers(instanceName, hostSource)
-    return hostSource and instances[instanceName][hostSource] or instances[instanceName] or {}
+    return instances[instanceName]?[hostSource]?.players or {}
 end
 exports("getInstancePlayers", getInstancePlayers)
 
 ---@param source? number
 ---@return string | nil
 local function getPlayerInstance(source)
-    return source and instancedPlayers[source]?.instance or instancedPlayers[PLAYER_SERVER_ID]?.instance
+    return instancedPlayers[source]?.instance or (source == nil and instancedPlayers[PLAYER_SERVER_ID]?.instance) or nil
 end
 exports("getPlayerInstance", getPlayerInstance)
 
+---@param instanceName string
+---@param hostSource number
+---@return table<number, vehicleNetId>
+local function getInstanceVehicles(instanceName, hostSource)
+    return instances[instanceName]?[hostSource]?.vehicles or {}
+end
+exports("getInstanceVehicles", getInstanceVehicles)
+
+---@param vehicleNetId number
+---@return string | nil
+local function getVehicleInstance(vehicleNetId)
+    return instancedVehicles[vehicleNetId]?.instance
+end
+exports("getVehicleInstance", getVehicleInstance)
+
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.globalInstances, nil, function(_, _, value)
-    instances = value
+    instances = value --[[@as xInstances[] ]]
     -- print(dumpTable(instances))
 end)
 
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.globalInstancedPlayers, nil, function(_, _, value)
-    instancedPlayers = value
+    instancedPlayers = value --[[@as xInstancedPlayers[] ]]
+end)
+
+---@diagnostic disable-next-line: param-type-mismatch
+AddStateBagChangeHandler(Shared.State.globalInstancedVehicles, nil, function(_, _, value)
+    instancedVehicles = value --[[@as xInstancedVehicles[] ]]
 end)
 
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, value)
     local playerHandler = GetPlayerFromStateBagName(bagName)
-    local source = tonumber(bagName:gsub("player:", ""), 10)
-
     if not playerHandler or playerHandler == 0 then return end
 
+    local source = tonumber(bagName:gsub("player:", ""), 10)
     if source ~= PLAYER_SERVER_ID then
-        local state = value and not (value.instance == currentInstance and value.host == currentHost) or false
-        NetworkConcealPlayer(playerHandler, state, state)
+        local conceal = value and not (value.instance == currentInstance and value.host == currentHost) or false
+        NetworkConcealPlayer(playerHandler, conceal, conceal)
         return
     end
 
     local previousInstance = currentInstance
+    local previousHost = currentHost
 
     currentInstance = value?.instance
     currentHost = value?.host
 
-    local previousInstancePlayers = getInstancePlayers(previousInstance)
+    local previousInstanceData = getInstanceData(previousInstance, previousHost)
+    for key, tableOfData in pairs(previousInstanceData) do
+        if key == "players" then
+            for i = 1, #tableOfData do
+                local playerServerId = tableOfData[i]
 
-    for _, players in pairs(previousInstancePlayers) do
-        for i = 1, #players do
-            local playerServerId = players[i]
+                if playerServerId ~= PLAYER_SERVER_ID then
+                    local player = GetPlayerFromServerId(playerServerId)
 
-            if playerServerId ~= PLAYER_SERVER_ID then
-                local player = GetPlayerFromServerId(playerServerId)
+                    if player ~= -1 and NetworkIsPlayerActive(player) then
+                        local conceal = instancedPlayers[playerServerId] and true or false
+                        NetworkConcealPlayer(player, conceal, conceal)
+                    end
+                end
+            end
+        elseif key == "vehicles" then
+            for i = 1, #tableOfData do
+                local vehicleNetId = tableOfData[i]
 
-                if player ~= -1 and NetworkIsPlayerActive(player) then
-                    local conceal = instancedPlayers[playerServerId] and true or false
-                    NetworkConcealPlayer(player, conceal, conceal)
+                if NetworkDoesEntityExistWithNetworkId(vehicleNetId) then
+                    local vehicleEntity = NetToVeh(vehicleNetId)
+
+                    if DoesEntityExist(vehicleEntity) then
+                        local conceal = instancedVehicles[vehicleNetId] and true or false
+                        NetworkConcealEntity(vehicleEntity, conceal)
+                    end
                 end
             end
         end
     end
 
-    local currentInstancePlayers = getInstancePlayers(currentInstance)
+    local currentInstanceData = getInstanceData(currentInstance)
+    for hostSource, instanceData in pairs(currentInstanceData) do
+        for key, tableOfData in pairs(instanceData) do
+            if key == "players" then
+                for i = 1, #tableOfData do
+                    local playerServerId = tableOfData[i]
 
-    for hostSource, players in pairs(currentInstancePlayers) do
-        for i = 1, #players do
-            local playerServerId = players[i]
+                    if playerServerId ~= PLAYER_SERVER_ID then
+                        local player = GetPlayerFromServerId(playerServerId)
 
-            if playerServerId ~= PLAYER_SERVER_ID then
-                local player = GetPlayerFromServerId(playerServerId)
+                        if player ~= -1 and NetworkIsPlayerActive(player) then
+                            local conceal = not (hostSource == currentHost)
+                            NetworkConcealPlayer(player, conceal, conceal)
+                        end
+                    end
+                end
+            elseif key == "vehicles" then
+                for i = 1, #tableOfData do
+                    local vehicleNetId = tableOfData[i]
 
-                if player ~= -1 and NetworkIsPlayerActive(player) then
-                    local conceal = not (hostSource == currentHost)
-                    NetworkConcealPlayer(player, conceal, conceal)
+                    if NetworkDoesEntityExistWithNetworkId(vehicleNetId) then
+                        local vehicleEntity = NetToVeh(vehicleNetId)
+
+                        if DoesEntityExist(vehicleEntity) then
+                            local conceal = not (hostSource == currentHost)
+                            NetworkConcealEntity(vehicleEntity, conceal)
+                        end
+                    end
                 end
             end
         end
     end
 end)
 
+---@diagnostic disable-next-line: param-type-mismatch
+AddStateBagChangeHandler(Shared.State.vehicleInstance, nil, function(bagName, _, value)
+    local entityHandler = GetEntityFromStateBagName(bagName)
+    if not entityHandler or entityHandler == 0 then return end
+
+    local conceal = value and not (value.instance == currentInstance and value.host == currentHost) or false
+    NetworkConcealEntity(entityHandler, conceal)
+end)
 local function onResourceStop(resource)
     if resource ~= Shared.currentResourceName then return end
     for playerServerId in pairs(instancedPlayers) do
@@ -120,11 +176,3 @@ end
 
 AddEventHandler("onResourceStop", onResourceStop)
 AddEventHandler("onClientResourceStop", onResourceStop)
-
-if Config.Debug then
-    -- FOR NOW, enterInstance EXPORT MUST NOT BE USED - USE SERVER-SIDE EXPORTS INSTEAD
-    RegisterCommand("enterInstance", function(source, args)
-        local success, message = exports[Shared.currentResourceName]:enterInstance(args[1])
-        print(success, message)
-    end, false)
-end
