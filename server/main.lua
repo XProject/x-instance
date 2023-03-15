@@ -165,11 +165,8 @@ local function addPlayerToInstance(source, instanceName, instanceHost, forceAddP
     instancedPlayers[source] = {instance = instanceName, host = instanceHost}
     table.insert(instanceToJoinPlayers, source)
 
-    if GetInvokingResource() then -- got call through exports on server
-        Player(source).state:set(Shared.State.playerInstance, instancedPlayers[source], true)
-    end
-
     syncInstances()
+    Player(source).state:set(Shared.State.playerInstance, instancedPlayers[source], true)
 
     return true, "successful"
 end
@@ -188,8 +185,6 @@ local function removePlayerFromInstance(source, instanceName)
 
     local currentInstanceHost = instancedPlayers[source]?.host
     instancedPlayers[source] = nil
-
-    Player(source).state:set(Shared.State.playerInstance, nil, true)
 
     local currentInstancePlayers = (instanceName and currentInstanceHost) and instances[instanceName]?[currentInstanceHost]?.players
 
@@ -216,6 +211,7 @@ local function removePlayerFromInstance(source, instanceName)
     end
 
     syncInstances()
+    Player(source).state:set(Shared.State.playerInstance, nil, true)
 
     return true, "successful"
 end
@@ -235,17 +231,6 @@ local function getPlayerInstance(source)
     return instancedPlayers[source]?.instance
 end
 exports("getPlayerInstance", getPlayerInstance)
-
----@diagnostic disable-next-line: param-type-mismatch
-AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, value)
-    local source = GetPlayerFromStateBagName(bagName)
-
-    if not source or source == 0 or not value then return end
-
-    if GetInvokingResource() then return end -- got call through exports on server
-
-    addPlayerToInstance(source, value)
-end)
 
 ---@param vehicleNetId number
 ---@param instanceName string
@@ -302,11 +287,8 @@ local function addVehicleToInstance(vehicleNetId, instanceName, instanceHost, fo
     instancedVehicles[vehicleNetId] = {instance = instanceName, host = instanceHost}
     table.insert(instanceToJoinVehicles, vehicleNetId)
 
-    if GetInvokingResource() then -- got call through exports on server
-        Entity(vehicleEntity).state:set(Shared.State.vehicleInstance, instancedVehicles[vehicleNetId], true)
-    end
-
     syncInstances()
+    Entity(vehicleEntity).state:set(Shared.State.vehicleInstance, instancedVehicles[vehicleNetId], true)
 
     return true, "successful"
 end
@@ -325,8 +307,6 @@ local function removeVehicleFromInstance(vehicleNetId, instanceName)
 
     local currentInstanceHost = instancedVehicles[vehicleNetId]?.host
     instancedVehicles[vehicleNetId] = nil
-
-    Entity(NetworkGetEntityFromNetworkId(vehicleNetId)).state:set(Shared.State.vehicleInstance, nil, true)
 
     local currentInstanceVehicles = (instanceName and currentInstanceHost) and instances[instanceName]?[currentInstanceHost]?.vehicles
 
@@ -353,6 +333,7 @@ local function removeVehicleFromInstance(vehicleNetId, instanceName)
     end
 
     syncInstances()
+    Entity(NetworkGetEntityFromNetworkId(vehicleNetId)).state:set(Shared.State.vehicleInstance, nil, true)
 
     return true, "successful"
 end
