@@ -22,7 +22,7 @@ exports("doesInstanceExist", doesInstanceExist)
 local function getInstanceData(instanceName, hostSource)
     return instances[instanceName]?[hostSource] or (hostSource == nil and instances[instanceName]) or {}
 end
-exports("getInstancePlayers", getInstancePlayers)
+exports("getInstanceData", getInstanceData)
 
 ---@param instanceName string
 ---@param hostSource number
