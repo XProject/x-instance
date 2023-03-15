@@ -350,6 +350,21 @@ local function removeVehicleFromInstance(vehicleNetId, instanceName)
 end
 exports("removeVehicleFromInstance", removeVehicleFromInstance)
 
+---@param instanceName string
+---@param hostSource number
+---@return table<number, vehicleNetId> | nil
+local function getInstanceVehicles(instanceName, hostSource)
+    return instances[instanceName]?[hostSource]?.vehicles
+end
+exports("getInstanceVehicles", getInstanceVehicles)
+
+---@param vehicleNetId number
+---@return string | nil
+local function getVehicleInstance(vehicleNetId)
+    return instancedVehicles[vehicleNetId]?.instance
+end
+exports("getVehicleInstance", getVehicleInstance)
+
 local function onResourceStop(resource)
     if resource ~= Shared.currentResourceName then return end
     GlobalState:set(Shared.State.globalInstancedPlayers, {}, true)
