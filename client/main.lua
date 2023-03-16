@@ -65,7 +65,7 @@ exports("getVehicleInstance", getVehicleInstance)
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.globalInstances, nil, function(_, _, value)
     instances = value --[[@as xInstances[] ]]
-    -- print(dumpTable(instances))
+    print(dumpTable(instances))
 end)
 
 ---@diagnostic disable-next-line: param-type-mismatch
@@ -127,33 +127,31 @@ AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, 
         end
     end
 
-    local currentInstanceData = getInstanceData(currentInstance)
-    for hostSource, instanceData in pairs(currentInstanceData) do
-        for key, tableOfData in pairs(instanceData) do
-            if key == "players" then
-                for i = 1, #tableOfData do
-                    local playerServerId = tableOfData[i]
+    local currentInstanceData = getInstanceData(currentInstance, currentHost)
+    for key, tableOfData in pairs(currentInstanceData) do
+        if key == "players" then
+            for i = 1, #tableOfData do
+                local playerServerId = tableOfData[i]
 
-                    if playerServerId ~= PLAYER_SERVER_ID then
-                        local player = GetPlayerFromServerId(playerServerId)
+                if playerServerId ~= PLAYER_SERVER_ID then
+                    local player = GetPlayerFromServerId(playerServerId)
 
-                        if player ~= -1 and NetworkIsPlayerActive(player) then
-                            local conceal = not (hostSource == currentHost)
-                            NetworkConcealPlayer(player, conceal, conceal)
-                        end
+                    if player ~= -1 and NetworkIsPlayerActive(player) then
+                        local conceal = false
+                        NetworkConcealPlayer(player, conceal, conceal)
                     end
                 end
-            elseif key == "vehicles" then
-                for i = 1, #tableOfData do
-                    local vehicleNetId = tableOfData[i]
+            end
+        elseif key == "vehicles" then
+            for i = 1, #tableOfData do
+                local vehicleNetId = tableOfData[i]
+                if NetworkDoesEntityExistWithNetworkId(vehicleNetId) then
+                    local vehicleEntity = NetToVeh(vehicleNetId)
 
-                    if NetworkDoesEntityExistWithNetworkId(vehicleNetId) then
-                        local vehicleEntity = NetToVeh(vehicleNetId)
-
-                        if DoesEntityExist(vehicleEntity) then
-                            local conceal = not (hostSource == currentHost)
-                            NetworkConcealEntity(vehicleEntity, conceal)
-                        end
+                    if DoesEntityExist(vehicleEntity) then
+                        NetworkRequestControlOfEntity(vehicleEntity)
+                        local conceal = false
+                        NetworkConcealEntity(vehicleEntity, conceal)
                     end
                 end
             end
