@@ -80,7 +80,7 @@ local function removeInstanceType(instanceName, forceRemove)
         for _, instanceData in pairs(instanceToRemove) do
             local instanceDataPlayers = instanceData?.players
             local instanceDataVehicles = instanceData?.vehicles
-            if (#instanceDataPlayers > 0) or (#instanceDataVehicles > 0) then return false, "instance_is_occupied" end
+            if (instanceDataPlayers and #instanceDataPlayers > 0) or (instanceDataVehicles and #instanceDataVehicles > 0) then return false, "instance_is_occupied" end
         end
     end
 
@@ -157,7 +157,7 @@ local function addPlayerToInstance(source, instanceName, instanceHost, forceAddP
 
         local instanceDataPlayers = instances[currentInstanceName][currentInstanceHost]?.players
         local instanceDataVehicles = instances[currentInstanceName][currentInstanceHost]?.vehicles
-        if (#instanceDataPlayers < 1) and (#instanceDataVehicles < 1) then
+        if ((instanceDataPlayers and #instanceDataPlayers < 1) or not instanceDataPlayers) and ((instanceDataVehicles and #instanceDataVehicles < 1) or not instanceDataVehicles) then
             instances[currentInstanceName][currentInstanceHost] = nil
         end
     end
@@ -173,10 +173,9 @@ end
 exports("addPlayerToInstance", addPlayerToInstance)
 
 ---@param source number
----@param instanceName? string
 ---@return boolean, string
-local function removePlayerFromInstance(source, instanceName)
-    instanceName = instanceName or instancedPlayers[source]?.instance
+local function removePlayerFromInstance(source)
+    local instanceName = instancedPlayers[source]?.instance
     if not doesInstanceExist(instanceName) then return false, "instance_not_exist" end
 
     local isSourceInInstance = instancedPlayers[source] and true or false
@@ -205,7 +204,7 @@ local function removePlayerFromInstance(source, instanceName)
 
         local instanceDataPlayers = instances[instanceName]?[currentInstanceHost]?.players
         local instanceDataVehicles = instances[instanceName]?[currentInstanceHost]?.vehicles
-        if (#instanceDataPlayers < 1) and (#instanceDataVehicles < 1) then
+        if ((instanceDataPlayers and #instanceDataPlayers < 1) or not instanceDataPlayers) and ((instanceDataVehicles and #instanceDataVehicles < 1) or not instanceDataVehicles) then
             instances[instanceName][currentInstanceHost] = nil
         end
     end
@@ -287,7 +286,7 @@ local function addVehicleToInstance(vehicleNetId, instanceName, instanceHost, fo
 
         local instanceDataPlayers = instances[currentInstanceName]?[currentInstanceHost]?.players
         local instanceDataVehicles = instances[currentInstanceName]?[currentInstanceHost]?.vehicles
-        if (#instanceDataPlayers < 1) and (#instanceDataVehicles < 1) then
+        if ((instanceDataPlayers and #instanceDataPlayers < 1) or not instanceDataPlayers) and ((instanceDataVehicles and #instanceDataVehicles < 1) or not instanceDataVehicles) then
             instances[currentInstanceName][currentInstanceHost] = nil
         end
     end
@@ -303,10 +302,9 @@ end
 exports("addVehicleToInstance", addVehicleToInstance)
 
 ---@param vehicleNetId number
----@param instanceName? string
 ---@return boolean, string
-local function removeVehicleFromInstance(vehicleNetId, instanceName)
-    instanceName = instanceName or instancedVehicles[vehicleNetId]?.instance
+local function removeVehicleFromInstance(vehicleNetId)
+    local instanceName = instancedVehicles[vehicleNetId]?.instance
     if not doesInstanceExist(instanceName) then return false, "instance_not_exist" end
 
     local isVehicleInInstance = instancedVehicles[vehicleNetId] and true or false
@@ -320,8 +318,8 @@ local function removeVehicleFromInstance(vehicleNetId, instanceName)
 
     if currentInstanceVehicles then
         for index = 1, #currentInstanceVehicles do
-            local playerSource = currentInstanceVehicles[index]
-            if playerSource == source then
+            local vehicleId = currentInstanceVehicles[index]
+            if vehicleId == vehicleNetId then
                 table.remove(currentInstanceVehicles, index)
                 break
             end
@@ -335,7 +333,7 @@ local function removeVehicleFromInstance(vehicleNetId, instanceName)
 
         local instanceDataPlayers = instances[instanceName]?[currentInstanceHost]?.players
         local instanceDataVehicles = instances[instanceName]?[currentInstanceHost]?.vehicles
-        if (#instanceDataPlayers < 1) and (#instanceDataVehicles < 1) then
+        if ((instanceDataPlayers and #instanceDataPlayers < 1) or not instanceDataPlayers) and ((instanceDataVehicles and #instanceDataVehicles < 1) or not instanceDataVehicles) then
             instances[instanceName][currentInstanceHost] = nil
         end
     end
@@ -399,6 +397,16 @@ if Config.Debug then
 
     RegisterCommand("removePlayerFromInstance", function(source, args)
         local success, message = exports[Shared.currentResourceName]:removePlayerFromInstance(source, args[1])
+        print(success, message)
+    end, false)
+
+    RegisterCommand("addVehicleToInstance", function(source, args)
+        local success, message = exports[Shared.currentResourceName]:addVehicleToInstance(tonumber(args[1]), args[2], tonumber(args[3]), args[3] and true)
+        print(success, message)
+    end, false)
+
+    RegisterCommand("removeVehicleFromInstance", function(source, args)
+        local success, message = exports[Shared.currentResourceName]:removeVehicleFromInstance(tonumber(args[1]), args[2])
         print(success, message)
     end, false)
 end
