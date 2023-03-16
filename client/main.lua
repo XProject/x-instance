@@ -149,7 +149,6 @@ AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, 
                     local vehicleEntity = NetToVeh(vehicleNetId)
 
                     if DoesEntityExist(vehicleEntity) then
-                        NetworkRequestControlOfEntity(vehicleEntity)
                         local conceal = false
                         NetworkConcealEntity(vehicleEntity, conceal)
                     end
