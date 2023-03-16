@@ -8,18 +8,37 @@ Shared.State.globalInstances = ("%s_globalInstances"):format(Shared.currentResou
 
 Shared.State.globalInstancedPlayers = ("%s_globalInstancedPlayers"):format(Shared.currentResourceName)
 
+Shared.State.globalInstancedVehicles = ("%s_globalInstancedVehicles"):format(Shared.currentResourceName)
+
 Shared.State.playerInstance = ("%s_playerInstance"):format(Shared.currentResourceName)
+
+Shared.State.vehicleInstance = ("%s_vehicleInstance"):format(Shared.currentResourceName)
 
 ---@alias playerSource number
 ---@alias instanceName string
 ---@alias hostSource playerSource
+---@alias vehicleNetId number
+
+---@class xInstanceData
+---@field players playerSource[]
+---@field vehicles vehicleNetId[]
 
 ---@class xInstances
----@field [instanceName] table<hostSource, playerSource[]>
+---@field [instanceName] table<hostSource, xInstanceData[]>
 
----@class xInstancedPlayers
+---@class xInstancedPlayer
 ---@field instance instanceName
 ---@field host hostSource
+
+---@class xInstancedPlayers
+---@field [playerSource] xInstancedPlayer
+
+---@class xInstancedVehicle
+---@field instance instanceName
+---@field host hostSource
+
+---@class xInstancedVehicles
+---@field [vehicleNetId] xInstancedVehicle
 
 function dumpTable(table, nb)
     if nb == nil then
