@@ -4,9 +4,9 @@ lua54       "yes"
 game        "gta5"
 
 name        "x-instance"
-version     "0.7.0"
+version     "0.8.5"
 repository  "https://github.com/XProject/x-instance"
-description "Project-X Instance: Player instancing system like Rockstar"
+description "Project-X Instance: Player & Vehicle Instance System for FiveM's OneSync Infinity"
 
 shared_scripts {
     "shared/*.lua",
