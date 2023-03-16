@@ -26,7 +26,6 @@ local function resetPlayerStateBag(source)
         Player(allPlayers[index]).state:set(Shared.State.playerInstance, nil, true)
     end
 end
-CreateThread(resetPlayerStateBag)
 
 local function resetVehicleStateBag(vehicleNetId)
     local allVehicles = vehicleNetId and {NetworkGetEntityFromNetworkId(vehicleNetId)} or GetAllVehicles()
@@ -34,7 +33,6 @@ local function resetVehicleStateBag(vehicleNetId)
         Entity(allVehicles[index]).state:set(Shared.State.vehicleInstance, nil, true)
     end
 end
-CreateThread(resetVehicleStateBag)
 
 ---@param instanceName string
 ---@return boolean
