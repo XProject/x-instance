@@ -361,6 +361,7 @@ exports("getVehicleInstance", getVehicleInstance)
 local function onResourceStop(resource)
     if resource ~= Shared.currentResourceName then return end
     GlobalState:set(Shared.State.globalInstancedPlayers, {}, true)
+    GlobalState:set(Shared.State.globalInstancedVehicles, {}, true)
     GlobalState:set(Shared.State.globalInstances, {}, true)
     resetPlayerStateBag()
     resetVehicleStateBag()
