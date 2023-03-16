@@ -17,6 +17,14 @@ end
 exports("doesInstanceExist", doesInstanceExist)
 
 ---@param instanceName string
+---@param instanceHost number
+---@return boolean
+local function doesInstanceHostExist(instanceName, instanceHost)
+    return instances[instanceName]?[instanceHost] and true or false
+end
+exports("doesInstanceHostExist", doesInstanceHostExist)
+
+---@param instanceName string
 ---@param hostSource? number
 ---@return xInstanceData | xInstances | table
 local function getInstanceData(instanceName, hostSource)
