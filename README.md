@@ -127,11 +127,3 @@ exports["x-instance"]:addVehicleToInstance(vehicleNetId, instanceName, instanceH
 exports["x-instance"]:removeVehicleFromInstance(vehicleNetId)
 ```
 <hr>
-
-
-## TODO
-- [x] Find a way to prevent instanced players from hearing each other(possibly through pma-voice export).
-- [x] Find a way to disable pvp between instanced players that are not in a same instance.
-- [x] Find a way to disable gun shots to be heard by instanced players.
-- [x] Optimize it more than its current state.
-- [x] Add required exports to make vehicle entities concealed.(for usage in Rockstart-like garages👀 & a lot more)
