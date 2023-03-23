@@ -9,39 +9,6 @@ local currentHost = nil
 local PLAYER_ID = PlayerId()
 local PLAYER_SERVER_ID = GetPlayerServerId(PLAYER_ID)
 
-local function updateInstanceData(instanceName, instanceHost)
-    local instanceData = getInstanceData(instanceName, instanceHost)
-    for key, tableOfData in pairs(instanceData) do
-        if key == "players" then
-            for i = 1, #tableOfData do
-                local playerServerId = tableOfData[i]
-
-                if playerServerId ~= PLAYER_SERVER_ID then
-                    local player = GetPlayerFromServerId(playerServerId)
-
-                    if player ~= -1 and NetworkIsPlayerActive(player) then
-                        local conceal = (instanceName == currentInstance and instanceHost == currentHost) and false or (instancedPlayers[playerServerId] and true or false)
-                        NetworkConcealPlayer(player, conceal, conceal)
-                    end
-                end
-            end
-        elseif key == "vehicles" then
-            for i = 1, #tableOfData do
-                local vehicleNetId = tableOfData[i]
-
-                if NetworkDoesEntityExistWithNetworkId(vehicleNetId) then
-                    local vehicleEntity = NetToVeh(vehicleNetId)
-
-                    if DoesEntityExist(vehicleEntity) then
-                        local conceal = (instanceName == currentInstance and instanceHost == currentHost) and false or (instancedVehicles[vehicleNetId] and true or false)
-                        NetworkConcealEntity(vehicleEntity, conceal)
-                    end
-                end
-            end
-        end
-    end
-end
-
 ---@param instanceName string
 ---@return boolean
 local function doesInstanceExist(instanceName)
@@ -110,6 +77,39 @@ end)
 AddStateBagChangeHandler(Shared.State.globalInstancedVehicles, nil, function(_, _, value)
     instancedVehicles = value --[[@as xInstancedVehicles[] ]]
 end)
+
+local function updateInstanceData(instanceName, instanceHost)
+    local instanceData = getInstanceData(instanceName, instanceHost)
+    for key, tableOfData in pairs(instanceData) do
+        if key == "players" then
+            for i = 1, #tableOfData do
+                local playerServerId = tableOfData[i]
+
+                if playerServerId ~= PLAYER_SERVER_ID then
+                    local player = GetPlayerFromServerId(playerServerId)
+
+                    if player ~= -1 and NetworkIsPlayerActive(player) then
+                        local conceal = (instanceName == currentInstance and instanceHost == currentHost) and false or (instancedPlayers[playerServerId] and true or false)
+                        NetworkConcealPlayer(player, conceal, conceal)
+                    end
+                end
+            end
+        elseif key == "vehicles" then
+            for i = 1, #tableOfData do
+                local vehicleNetId = tableOfData[i]
+
+                if NetworkDoesEntityExistWithNetworkId(vehicleNetId) then
+                    local vehicleEntity = NetToVeh(vehicleNetId)
+
+                    if DoesEntityExist(vehicleEntity) then
+                        local conceal = (instanceName == currentInstance and instanceHost == currentHost) and false or (instancedVehicles[vehicleNetId] and true or false)
+                        NetworkConcealEntity(vehicleEntity, conceal)
+                    end
+                end
+            end
+        end
+    end
+end
 
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, value)
