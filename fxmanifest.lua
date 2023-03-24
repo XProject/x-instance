@@ -4,7 +4,7 @@ lua54       "yes"
 game        "gta5"
 
 name        "x-instance"
-version     "0.8.5"
+version     "0.9.0"
 repository  "https://github.com/XProject/x-instance"
 description "Project-X Instance: Player & Vehicle Instance System for FiveM's OneSync Infinity"
 
