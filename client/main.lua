@@ -89,7 +89,7 @@ local function updateInstanceData(instanceName, instanceHost)
                     local player = GetPlayerFromServerId(playerServerId)
 
                     if player ~= -1 and NetworkIsPlayerActive(player) then
-                        local conceal = (instanceName == currentInstance and instanceHost == currentHost) and false or (instancedPlayers[playerServerId] and true or false)
+                        local conceal = not (instanceName == currentInstance and instanceHost == currentHost) and (instancedPlayers[playerServerId] ~= nil)
                         NetworkConcealPlayer(player, conceal, conceal)
                     end
                 end
@@ -102,7 +102,7 @@ local function updateInstanceData(instanceName, instanceHost)
                     local vehicleEntity = NetToVeh(vehicleNetId)
 
                     if DoesEntityExist(vehicleEntity) then
-                        local conceal = (instanceName == currentInstance and instanceHost == currentHost) and false or (instancedVehicles[vehicleNetId] and true or false)
+                        local conceal = not (instanceName == currentInstance and instanceHost == currentHost) and (instancedVehicles[vehicleNetId] ~= nil)
                         NetworkConcealEntity(vehicleEntity, conceal)
                     end
                 end
@@ -125,10 +125,10 @@ AddStateBagChangeHandler(Shared.State.playerInstance, nil, function(bagName, _, 
 
     local previousInstance = currentInstance
     local previousHost = currentHost
-    updateInstanceData(previousInstance, previousHost)
-
     currentInstance = value?.instance
     currentHost = value?.host
+
+    updateInstanceData(previousInstance, previousHost)
     updateInstanceData(currentInstance, currentHost)
 end)
 
@@ -142,18 +142,18 @@ AddStateBagChangeHandler(Shared.State.vehicleInstance, nil, function(bagName, _,
 end)
 
 RegisterNetEvent(Shared.Event.playerEnteredScope, function(playerServerId)
-    if GetInvokingResource() then return end
-    if playerServerId ~= PLAYER_SERVER_ID then
-        local player = GetPlayerFromServerId(playerServerId)
-
-        if player ~= -1 and NetworkIsPlayerActive(player) then
-            if instancedPlayers[playerServerId] then
-                local instanceName, instanceHost = instancedPlayers[playerServerId].instance, instancedPlayers[playerServerId].host
-                local conceal = ((instanceName == currentInstance and instanceHost == currentHost) and false) or true
-                NetworkConcealPlayer(player, conceal, conceal)
-            elseif not instancedPlayers[playerServerId] and NetworkIsPlayerConcealed(player) then -- this elseif should not technically be needed because everytime a player joins another player's scope, since a new player is being created, the players is not concealed anyway...(OneSync baby)
-                NetworkConcealPlayer(player, false, false)
-            end
+    if GetInvokingResource() or playerServerId == PLAYER_SERVER_ID then return end
+    local player = GetPlayerFromServerId(playerServerId)
+    print("here", playerServerId, player, NetworkIsPlayerActive(player))
+    if player ~= -1 and NetworkIsPlayerActive(player) then
+        print("here2")
+        if instancedPlayers[playerServerId] then
+            local instanceName, instanceHost = instancedPlayers[playerServerId].instance, instancedPlayers[playerServerId].host
+            local conceal = not (instanceName == currentInstance and instanceHost == currentHost)
+            print("Player", playerServerId , "is", conceal and "concealed" or "not concealed")
+            NetworkConcealPlayer(player, conceal, conceal)
+        elseif not instancedPlayers[playerServerId] and NetworkIsPlayerConcealed(player) then -- this elseif should not technically be needed because everytime a player joins another player's scope, since a new player is being created, the players is not concealed anyway...(OneSync baby)
+            NetworkConcealPlayer(player, false, false)
         end
     end
 end)

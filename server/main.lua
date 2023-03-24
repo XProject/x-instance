@@ -360,7 +360,9 @@ exports("getVehicleInstance", getVehicleInstance)
 
 AddEventHandler("playerEnteredScope", function(data)
     local playerEntering, player = tonumber(data["player"]), tonumber(data["for"])
+    print(("%s is entering %s's scope"):format(playerEntering, player))
     if not playerEntering or not player then return end
+    Wait(1000) -- wait because sometimes once server thinks a player is entered another player's scope, the client is not aware of that yet!
     TriggerClientEvent(Shared.Event.playerEnteredScope, playerEntering, player)
 end)
 
