@@ -358,6 +358,12 @@ local function getVehicleInstance(vehicleNetId)
 end
 exports("getVehicleInstance", getVehicleInstance)
 
+AddEventHandler("playerEnteredScope", function(data)
+    local playerEntering, player = tonumber(data["player"]), tonumber(data["for"])
+    if not playerEntering or not player then return end
+    TriggerClientEvent(Shared.Event.playerEnteredScope, playerEntering, player)
+end)
+
 local function onResourceStop(resource)
     if resource ~= Shared.currentResourceName then return end
     GlobalState:set(Shared.State.globalInstancedPlayers, {}, true)

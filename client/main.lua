@@ -140,6 +140,24 @@ AddStateBagChangeHandler(Shared.State.vehicleInstance, nil, function(bagName, _,
     local conceal = value and not (value.instance == currentInstance and value.host == currentHost) or false
     NetworkConcealEntity(entityHandler, conceal)
 end)
+
+RegisterNetEvent(Shared.Event.playerEnteredScope, function(playerServerId)
+    if GetInvokingResource() then return end
+    if playerServerId ~= PLAYER_SERVER_ID then
+        local player = GetPlayerFromServerId(playerServerId)
+
+        if player ~= -1 and NetworkIsPlayerActive(player) then
+            if instancedPlayers[playerServerId] then
+                local instanceName, instanceHost = instancedPlayers[playerServerId].instance, instancedPlayers[playerServerId].host
+                local conceal = ((instanceName == currentInstance and instanceHost == currentHost) and false) or true
+                NetworkConcealPlayer(player, conceal, conceal)
+            elseif not instancedPlayers[playerServerId] and NetworkIsPlayerConcealed(player) then -- this elseif should not technically be needed because everytime a player joins another player's scope, since a new player is being created, the players is not concealed anyway...(OneSync baby)
+                NetworkConcealPlayer(player, false, false)
+            end
+        end
+    end
+end)
+
 local function onResourceStop(resource)
     if resource ~= Shared.currentResourceName then return end
     for playerServerId in pairs(instancedPlayers) do

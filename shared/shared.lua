@@ -14,6 +14,10 @@ Shared.State.playerInstance = ("%s_playerInstance"):format(Shared.currentResourc
 
 Shared.State.vehicleInstance = ("%s_vehicleInstance"):format(Shared.currentResourceName)
 
+Shared.Event = {}
+
+Shared.Event.playerEnteredScope = ("%s:playerEnteredScope"):format(Shared.currentResourceName)
+
 ---@alias playerSource number
 ---@alias instanceName string
 ---@alias hostSource playerSource
