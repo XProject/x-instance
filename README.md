@@ -112,18 +112,5 @@ exports["x-instance"]:addPlayerToInstance(source, instanceName, instanceHost, fo
 ---@param source number
 ---@return boolean, string
 exports["x-instance"]:removePlayerFromInstance(source)
-
-
----@param vehicleNetId number
----@param instanceName string
----@param instanceHost number
----@param forceAddVehicle? boolean
----@return boolean, string
-exports["x-instance"]:addVehicleToInstance(vehicleNetId, instanceName, instanceHost, forceAddVehicle)
-
-
----@param vehicleNetId number
----@return boolean, string
-exports["x-instance"]:removeVehicleFromInstance(vehicleNetId)
 ```
 <hr>
