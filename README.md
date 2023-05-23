@@ -1,6 +1,6 @@
 <h1 align="center"><b>X-INSTANCE</b></h1>
 
-<h3 align="center">Player & Vehicle Instance System for FiveM's OneSync Infinity</h3>
+<h3 align="center">Player Instance System for FiveM's OneSync Infinity</h3>
 
 <h4 align="center">While it may be easier to achieve instancing through routing buckets, I wanted to create a more immersive player experience by replicating Rockstar's instance system in which players can see others, cars, and their environment when viewing through ipl properties windows. I have taken steps to ensure that the system is well optimized, and is fully compatible with OneSync Infinity.</h3>
 
@@ -36,17 +36,6 @@ exports["x-instance"]:getInstancePlayers(instanceName, hostSource)
 ---@param source? number
 ---@return string | nil
 exports["x-instance"]:getPlayerInstance(source)
-
-
----@param instanceName string
----@param hostSource number
----@return table<number, vehicleNetId>
-exports["x-instance"]:getInstanceVehicles(instanceName, hostSource)
-
-
----@param vehicleNetId number
----@return string | nil
-exports["x-instance"]:getVehicleInstance(vehicleNetId)
 ```
 
 ## Server Exports
@@ -77,17 +66,6 @@ exports["x-instance"]:getInstancePlayers(instanceName, hostSource)
 ---@param source? number
 ---@return string | nil
 exports["x-instance"]:getPlayerInstance(source)
-
-
----@param instanceName string
----@param hostSource number
----@return table<number, vehicleNetId>
-exports["x-instance"]:getInstanceVehicles(instanceName, hostSource)
-
-
----@param vehicleNetId number
----@return string | nil
-exports["x-instance"]:getVehicleInstance(vehicleNetId)
 
 
 ---@param instanceName string
